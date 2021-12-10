@@ -2,7 +2,9 @@
 _targets
 
 # Intermediate pipeline files
-1_fetch/in/*
+1_prep/in/*
+1_prep/tmp/*
+1_prep/out/*
 
 # History files
 .Rhistory
