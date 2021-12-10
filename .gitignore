@@ -1,3 +1,9 @@
+# Targets files
+_targets
+
+# Intermediate pipeline files
+1_fetch/in/*
+
 # History files
 .Rhistory
 .Rapp.history
