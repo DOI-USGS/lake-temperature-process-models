@@ -1,4 +1,5 @@
 source('1_prep/src/munge_meteo.R')
+source('1_prep/src/munge_nmls.R')
 
 p1 <- list(
   # pull in files from lake-temperature-model-prep
@@ -10,18 +11,22 @@ p1 <- list(
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
 
   # Define maping variables
-  tar_target(p1_lake_ids, p1_lake_cell_xwalk_df$site_id),
+  tar_target(p1_lake_ids, 
+             p1_lake_cell_xwalk_df %>% 
+               filter(site_id %in% names(readr::read_rds(p1_nml_list_rds))) %>% 
+               pull(site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_xwalk_df$cell_no)),
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC')),
   tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
   
-  # map over gcm names to read in netCDF files - one per GCM
-  tar_target(p1_gcm_ncs, {
-    filename <- sprintf('1_prep/in/7_GCM_%s_1980_1999.nc', p1_gcm_names)
-    return(filename)
-  }, format = 'file', pattern = map(p1_gcm_names)),
-  
   # COMMENTING OUT FOR NOW, WHILE WE REFINE NETCDF APPROACH
+  # # map over gcm names to read in netCDF files - one per GCM
+  # tar_target(p1_gcm_ncs, {
+  #   filename <- sprintf('1_prep/in/7_GCM_%s.nc', p1_gcm_names)
+  #   return(filename)
+  # }, format = 'file', pattern = map(p1_gcm_names)),
+  # 
+  
   # # TODO - come up with a more efficient way to split netCDF files
   # # right now, each netCDF file is read in many times
   # # split netCDF into feather files - by cell, GCM, and time period
@@ -42,6 +47,17 @@ p1 <- list(
   # build meteo xwalk
   tar_target(p1_meteo_xwalk,
              build_meteo_xwalk(p1_meteo_feathers, p1_lake_cell_xwalk_df, p1_gcm_names, p1_gcm_dates),
-             iteration = 'group')
+             iteration = 'group'),
+  
+  # Set up list of nml objects, with NULL for meteo_fl
+  # Transform a single file of all lakes to a single list of all lakes
+  # (subset to p1_lake_ids), then tell `targets` to think of that list as an iterable list
+  tar_target(p1_glm_template_nml, '1_prep/in/glm3_template.nml', format = 'file'),
+  tar_target(p1_nml_objects,
+             munge_nmls(nml_list_rds = p1_nml_list_rds,
+                        lake_ids = p1_lake_ids,
+                        base_nml = p1_glm_template_nml),
+             packages = c('glmtools'),
+             iteration = 'list')
 )
 
