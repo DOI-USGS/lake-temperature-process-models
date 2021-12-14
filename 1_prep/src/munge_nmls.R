@@ -1,4 +1,4 @@
-#' @Title Make nml edits
+#' @title Make nml edits
 #' @description prepare edits that can be made the same way
 #' for all lakes. Applies to one lake's nml list at at time
 #' @param nml_args lake-specific nml parameters loaded in from
@@ -6,8 +6,12 @@
 #' @return a list of modified nml arguments
 make_nml_edits <- function(nml_args) {
   nml_edits <- with(nml_args, c(
+    # &glm_setup
+    max_layers = max(30, ceiling(7 * lake_depth)),
+    
     # &morphometry
     lake_name = site_id,
+    bsn_vals = length(H),
     
     # &init_profiles
     tibble(
@@ -33,8 +37,7 @@ munge_nmls <- function(nml_list_rds, lake_ids, base_nml) {
   
   # create the munged nml objects
   nml_objs <- purrr::map(nml_list, function(nml) {
-      # set meteo_fl to NULL, since default value = NLDAS filename
-      # and set depths based on lake depth
+      # make edits to nml parameters
       nml <- purrr::list_modify(nml, !!!make_nml_edits(nml))
       # remove helpful but non-nml values
       nml <- nml[!(names(nml) %in% c('site_id'))]
