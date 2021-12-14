@@ -14,6 +14,8 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk) {
   # prepare to write inputs and results locally for quick I/O
   sim_lake_dir <- file.path(sim_dir, lake_id, gcm, time_period)
   dir.create(sim_lake_dir, recursive=TRUE, showWarnings=FALSE)
+  # FOR NOW - commenting out code to delete directory after model execution
+  # since not yet extracting output of model into feather file
   # on.exit(unlink(sim_lake_dir, recursive = TRUE))
   
   # Define data start and stop dates
@@ -27,7 +29,6 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk) {
     mutate(Rain = case_when(Snow > 0 ~ 0, TRUE ~ Rain))
   burn_in <- 300 # days
   burn_out <- 190 # days
-  # create a burn-in. We're going to mirror the data of the first year:
   # create a burn-in. We're going to mirror the data of the first year:
   burn_in_data <- tmp_data[2:burn_in, ] %>% arrange(desc(time)) %>%
     mutate(time = seq(from = tmp_data[1,]$time-burn_in+1, by = 'day', length.out = length(2:burn_in)))
@@ -52,6 +53,8 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk) {
   glmtools::write_nml(nml_obj, file.path(sim_lake_dir, 'glm3.nml'))
   
   # run once with hourly output:
+  # FOR NOW - running w/ Alison's code to help debug
+  # eventually, will just run with:
   # GLM3r::run_glm(sim_lake_dir, verbose = FALSE)
   glm_time <- system.time({
     glm_code <- tryCatch(
@@ -80,6 +83,7 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk) {
       glm_hash = NA))
   }
 
+  # FOR NOW
   # return a 1-row tibble of information about this model run
   return(tibble(
     run_date = Sys.time(),
@@ -93,4 +97,8 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk) {
       purrr::map_chr(tools::md5sum) %>% # hash each of the output files in the sim directory
       digest::digest('sha1') # combine the file hashes into a single object hash
   ))
+  
+  # TODO - extract output of model run and save in feather file
+  # In separate step, output for each lake, for each gcm, will
+  # be combined into a single feather file (one w/ output for all 3 time periods)
 }
