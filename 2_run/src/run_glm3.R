@@ -40,7 +40,7 @@ munge_meteo_w_burn_in_out <- function(meteo_xwalk, begin, end, burn_in, burn_out
 extract_glm_output <- function(sim_lake_dir, nml_obj, export_fl) {
   out_dir <- glmtools::get_nml_value(nml_obj, arg_name = 'out_dir')
   out_fn <- paste0(glmtools::get_nml_value(nml_obj, 'out_fn'), '.nc')
-  nc_filepath = file.path(sim_lake_dir, out_dir, out_fn)
+  nc_filepath <- file.path(sim_lake_dir, out_dir, out_fn)
   lake_depth <- glmtools::get_nml_value(nml_obj, arg_name = 'lake_depth')
   export_depths <- seq(0, lake_depth, by = 0.5)
   temp_data <- glmtools::get_temp(nc_filepath, reference = 'surface', z_out = export_depths) %>%
@@ -101,7 +101,6 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
                                               sim_name = sprintf('%s_%s_%s', lake_id, gcm, time_period),
                                               start = sim_start,
                                               stop = sim_stop))
-  nml_obj$light$Kw_file <- NULL # use static value instead of relying on a file
   glmtools::write_nml(nml_obj, file.path(sim_lake_dir, 'glm3.nml'))
   
   # for each model run, try running the model up to 5 times
@@ -126,12 +125,12 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
       
       # Build export tibble with export file, its hash, and glm run information
       export_tibble <- tibble(
-        run_date = Sys.time(),
         lake_id = lake_id,
         gcm = gcm,
         time_period = time_period,
         export_fl = export_fl,
         export_fl_hash = tools::md5sum(export_fl),
+        glm_run_date = Sys.time(),
         glm_time_s = glm_time,
         glm_success = TRUE,
         glm_code = glm_code)
@@ -142,12 +141,12 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
       # set export_fl and export_fl_hash to NA
       # to make sure previously exported files aren't tracked
       export_tibble <- tibble(
-        run_date = Sys.time(),
         lake_id = lake_id,
         gcm = gcm,
         time_period = time_period,
         export_fl = NA,
         export_fl_hash = NA,
+        glm_run_date = Sys.time(),
         glm_time_s = glm_time,
         glm_success = FALSE,
         glm_code = glm_code)
