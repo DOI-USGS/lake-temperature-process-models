@@ -56,10 +56,10 @@ build_meteo_xwalk <- function(meteo_feathers, lake_cell_xwalk, gcm_names, gcm_da
     # just before the file extension
     cell_no = as.numeric(str_extract(tools::file_path_sans_ext(meteo_fl), paste0(cell_no_list, "$")))
   )
-  meteo_xwalk <- purrr::map_df(gcm_names, function(gcm_name) {tibble(gcm = gcm_name, time_period=gcm_dates)}) %>%
-    tidyr::expand(
-      nesting(gcm, time_period),
-      lake_cell_xwalk %>% select(site_id, ID, cell_no)) %>%
+  meteo_xwalk <- tidyr::expand_grid(
+      nesting(select(lake_cell_xwalk, site_id, ID, cell_no)),
+      gcm = gcm_names, 
+      time_period = gcm_dates) %>%
     dplyr::relocate(c(gcm, time_period), .before=cell_no) %>%
     arrange(site_id) %>%
     left_join(meteo_branches, by=c('gcm', 'cell_no', 'time_period')) %>%
