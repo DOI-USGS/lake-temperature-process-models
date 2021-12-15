@@ -138,11 +138,6 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
       return(export_tibble)
     },
     error = function(e) {
-      glm_time <- system.time({glm_code <- GLM3r::run_glm(sim_lake_dir, verbose = FALSE)})[['elapsed']]
-      
-      # Make sure glm did indeed fail
-      if(glm_code == 0) stop()
-      
       # Build export tibble with glm run information
       # set export_fl and export_fl_hash to NA
       # to make sure previously exported files aren't tracked
