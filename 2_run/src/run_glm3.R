@@ -104,15 +104,6 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
   nml_obj$light$Kw_file <- NULL # use static value instead of relying on a file
   glmtools::write_nml(nml_obj, file.path(sim_lake_dir, 'glm3.nml'))
   
-  # Set up export tibble
-  export_fl <- sprintf(export_fl_template, lake_id, gcm, time_period)
-  export_tibble <- tibble(
-    run_date = Sys.time(),
-    lake_id = lake_id,
-    gcm = gcm,
-    time_period = time_period,
-    export_fl = export_fl)
-  
   # for each model run, try running the model up to 5 times
   # if model run works, report how long that model took to run
   # and extract output and save to feather export file
@@ -130,14 +121,20 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
       if(glm_code != 0) stop()
       
       # extract output
+      export_fl <- sprintf(export_fl_template, lake_id, gcm, time_period)
       extract_glm_output(sim_lake_dir, nml_obj, export_fl)
       
-      # Add glm run information to export tibble
-      export_tibble <- export_tibble %>%
-        mutate(export_hash = tools::md5sum(export_fl),
-               glm_time_s = glm_time,
-               glm_success = TRUE,
-               glm_code = glm_code)
+      # Build export tibble with export file, its hash, and glm run information
+      export_tibble <- tibble(
+        run_date = Sys.time(),
+        lake_id = lake_id,
+        gcm = gcm,
+        time_period = time_period,
+        export_fl = export_fl,
+        export_fl_hash = tools::md5sum(export_fl),
+        glm_time_s = glm_time,
+        glm_success = TRUE,
+        glm_code = glm_code)
       return(export_tibble)
     },
     error = function(e) {
@@ -146,12 +143,19 @@ run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
       # Make sure glm did indeed fail
       if(glm_code == 0) stop()
       
-      # Add glm run information to export tibble
-      export_tibble <- export_tibble %>%
-        mutate(export_hash = tools::md5sum(export_fl),
-               glm_time_s = glm_time,
-               glm_success = FALSE,
-               glm_code = glm_code)
+      # Build export tibble with glm run information
+      # set export_fl and export_fl_hash to NA
+      # to make sure previously exported files aren't tracked
+      export_tibble <- tibble(
+        run_date = Sys.time(),
+        lake_id = lake_id,
+        gcm = gcm,
+        time_period = time_period,
+        export_fl = NA,
+        export_fl_hash = NA,
+        glm_time_s = glm_time,
+        glm_success = FALSE,
+        glm_code = glm_code)
       return(export_tibble)
     }
   )
