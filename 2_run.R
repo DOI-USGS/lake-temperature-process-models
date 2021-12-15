@@ -28,7 +28,7 @@ p2 <- list(
   tar_target(
     p2_glm_uncalibrated_output_feathers,{  
       # set filename
-      outfile <- sprintf('2_run/out/%s_%s.feather',
+      outfile <- sprintf('2_run/out/GLM_%s_%s.feather',
                          unique(p2_glm_uncalibrated_run_groups$lake_id),
                          unique(p2_glm_uncalibrated_run_groups$gcm))
       # combine into single feather file and write
