@@ -13,14 +13,18 @@ p2 <- list(
     packages = c('retry','glmtools', 'GLM3r'),
     pattern = map(p1_meteo_xwalk)),
   # Group model runs by lake id and gcm
+  # Discard the glm diagnostics so they don't trigger rebuilds
+  # even when the export_fl_hash is unchanged
   tar_target(
     p2_glm_uncalibrated_run_groups,
-    p2_glm_uncalibrated_runs %>% 
+    p2_glm_uncalibrated_runs %>%
+      select(lake_id, gcm, time_period, export_fl, export_fl_hash) %>%
       group_by(lake_id, gcm) %>% 
       tar_group(),
     iteration = "group"
   ),
   # Use grouped target to combine glm output into feather files
+  # Use error = 'continue' to keep building if a branch fails
   tar_target(
     p2_glm_uncalibrated_output_feathers,{  
       # set filename
@@ -34,5 +38,6 @@ p2 <- list(
       
       return(outfile)},
     format = 'file',
-    pattern = map(p2_glm_uncalibrated_run_groups))
+    pattern = map(p2_glm_uncalibrated_run_groups),
+    error = 'continue')
 )
