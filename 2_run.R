@@ -8,10 +8,10 @@ p2 <- list(
     run_glm3_model(
       sim_dir = '2_run/tmp',
       nml_objs = p1_nml_objects,
-      meteo_xwalk = p1_meteo_xwalk,
-      export_fl_template = '2_run/tmp/%s_%s_%s.feather'),
+      model_config = p1_model_config,
+      export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather'),
     packages = c('retry','glmtools', 'GLM3r'),
-    pattern = map(p1_meteo_xwalk)),
+    pattern = map(p1_model_config)),
   # Group model runs by lake id and gcm
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
