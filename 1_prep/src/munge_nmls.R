@@ -4,7 +4,7 @@
 #' @param nml_args lake-specific nml parameters loaded in from
 #' the nml_list.rds from lake-temperature-model-prep
 #' @return a list of modified nml arguments
-make_nml_edits <- function(nml_args) {
+adjust_depth_args_nml <- function(nml_args) {
   nml_edits <- with(nml_args, c(
     # &glm_setup
     max_layers = max(30, ceiling(7 * lake_depth)),
@@ -16,12 +16,8 @@ make_nml_edits <- function(nml_args) {
     # &init_profiles
     tibble(
       the_depths = c(0, floor(lake_depth * 100)/100)
-    ),
-    
-    # &meteorology
-    meteo_fl = 'NULL'
+    )
   ))
-  
   return(nml_edits)
 }
 
@@ -34,16 +30,16 @@ make_nml_edits <- function(nml_args) {
 #' @return complete nml objects
 munge_nmls <- function(nml_list_rds, lake_ids, base_nml) {
   nml_list <- readr::read_rds(nml_list_rds)[lake_ids]
-  
+  nml_template <- read_nml(base_nml)
   # create the munged nml objects
   nml_objs <- purrr::map(nml_list, function(nml) {
-      # make edits to nml parameters
-      nml <- purrr::list_modify(nml, !!!make_nml_edits(nml))
+      # make edits to nml depth-related parameters
+      nml <- purrr::list_modify(nml, !!!adjust_depth_args_nml(nml))
+      # set meteo_fl value to NULL
+      nml <- purrr::list_modify(nml, !!!c('meteo_fl' = 'NULL'))
       # remove helpful but non-nml values
       nml <- nml[!(names(nml) %in% c('site_id'))]
-      
       # merge into base nml, checking arguments along the way
-      nml_template <- read_nml(base_nml)
       nml_obj <- set_nml(nml_template, arg_list = nml)
     })
   
