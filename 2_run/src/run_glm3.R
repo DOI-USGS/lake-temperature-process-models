@@ -54,11 +54,19 @@ extract_glm_output <- function(sim_lake_dir, nml_obj, export_fl) {
 
 #' @title run glm3 simulation
 #' @description For each lake - gcm - time period combo, write the nml
-#'  file, the meteo data, and run the glm3 model
+#'  file, the meteo data, and run the glm3 model. If the model run is
+#'  successful, the results are extracted and saved to '2_run/tmp' using
+#'  `extract_glm_ouput()` and then the simulation directory is deleted 
 #'  @param sim_dir base directory for simulations
 #'  @param nml_objs list of nml objects (one per lake id), named by lake id
 #'  @param meteo_xwalk a lake-gcm-time_period crosswalk table with the 
 #'  meteo file name and hash for each model run
+#'  @param export_fl_template the template for constructing the filepath 
+#'  for the export feather file that will be saved in `extract_glm_ouput()`
+#'  @return a tibble which includes the run_date, lake_id, gcm, time_period, 
+#'  the name of the export feather file, its hash (NA if the model run failed), 
+#'  the duration of the model run, whether or not the model run succeeded, 
+#'  and the code returned by the call to GLM3r::run_glm(). 
 run_glm3_model <- function(sim_dir, nml_objs, meteo_xwalk, export_fl_template) {
   # pull lake_id from meteo_xwalk
   lake_id <- meteo_xwalk$site_id
