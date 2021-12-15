@@ -10,7 +10,7 @@ p1 <- list(
   # list of lake-specific attributes for nml modification
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
 
-  # Define maping variables
+  # Define mapping variables
   tar_target(p1_lake_ids, 
              p1_lake_cell_xwalk_df %>% 
                filter(site_id %in% names(readr::read_rds(p1_nml_list_rds))) %>% 

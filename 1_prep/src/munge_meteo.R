@@ -51,6 +51,9 @@ build_meteo_xwalk <- function(meteo_feathers, lake_cell_xwalk, gcm_names, gcm_da
     meteo_data = map_chr(meteo_branch, ~ tar_meta(starts_with(.x))$data),
     gcm = stringr::str_extract(meteo_fl, gcm_name_list),
     time_period = stringr::str_extract(meteo_fl, gcm_date_list),
+    # cell_no is the very last part of the file name and so this str_extract() is 
+    # set up to use a regex that looks for a match in the last part of the filename 
+    # just before the file extension
     cell_no = as.numeric(str_extract(tools::file_path_sans_ext(meteo_fl), paste0(cell_no_list, "$")))
   )
   meteo_xwalk <- purrr::map_df(gcm_names, function(gcm_name) {tibble(gcm = gcm_name, time_period=gcm_dates)}) %>%
