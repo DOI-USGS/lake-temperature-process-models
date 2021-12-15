@@ -39,8 +39,7 @@ p1 <- list(
   # FOR NOW, USE LINDSAY'S FEATHER FILES, BROUGHT IN MANUALLY
   # mapping over gcm_names, gcm_dates, and cell_nos to read in Lindsay's created feather files
   tar_target(p1_meteo_feathers, 
-             {filename <- sprintf('1_prep/tmp/GCM_%s_%s_%s.feather', p1_gcm_names, p1_gcm_dates, p1_cell_nos)
-             return(filename)},
+             sprintf('1_prep/tmp/GCM_%s_%s_%s.feather', p1_gcm_names, p1_gcm_dates, p1_cell_nos),
              format = 'file',
              pattern = cross(p1_gcm_names, p1_gcm_dates, p1_cell_nos)),
   
