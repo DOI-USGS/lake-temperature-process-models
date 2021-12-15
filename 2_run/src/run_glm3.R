@@ -49,7 +49,7 @@ extract_glm_output <- function(sim_lake_dir, nml_obj, export_fl) {
     dplyr::mutate(ice = hice > 0, date = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>% dplyr::select(-hice, -DateTime) %>%
     dplyr::left_join(temp_data, ., by = 'date') %>%
     select(time = date, everything()) %>%
-    feather::write_feather(export_fl)
+    arrow::write_feather(export_fl)
 }
 
 #' @title run glm3 simulation
