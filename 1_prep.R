@@ -1,4 +1,5 @@
-source('1_prep/src/munge_meteo.R')
+source('1_prep/src/munge_netCDFs.R')
+source('1_prep/src/build_model_config.R')
 source('1_prep/src/munge_nmls.R')
 
 p1 <- list(
@@ -43,11 +44,11 @@ p1 <- list(
              format = 'file',
              pattern = cross(p1_gcm_names, p1_gcm_dates, p1_cell_nos)),
   
-  # build meteo xwalk
-  tar_target(p1_meteo_xwalk,
-             build_meteo_xwalk(p1_meteo_feathers, p1_lake_cell_xwalk_df, p1_gcm_names, p1_gcm_dates)),
+  # build model config
+  tar_target(p1_model_config,
+             build_model_config(p1_meteo_feathers, p1_lake_cell_xwalk_df, p1_gcm_names, p1_gcm_dates)),
   
-  # Set up list of nml objects, with NULL for meteo_fl
+  # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes
   # (subset to p1_lake_ids), then tell `targets` to think of that list as an iterable list
   tar_target(p1_glm_template_nml, '1_prep/in/glm3_template.nml', format = 'file'),
@@ -55,7 +56,6 @@ p1 <- list(
              munge_nmls(nml_list_rds = p1_nml_list_rds,
                         lake_ids = p1_lake_ids,
                         base_nml = p1_glm_template_nml),
-             packages = c('glmtools'),
-             iteration = 'list')
+             packages = c('glmtools'))
 )
 
