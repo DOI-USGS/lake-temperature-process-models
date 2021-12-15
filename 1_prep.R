@@ -46,8 +46,7 @@ p1 <- list(
   
   # build meteo xwalk
   tar_target(p1_meteo_xwalk,
-             build_meteo_xwalk(p1_meteo_feathers, p1_lake_cell_xwalk_df, p1_gcm_names, p1_gcm_dates),
-             iteration = 'group'),
+             build_meteo_xwalk(p1_meteo_feathers, p1_lake_cell_xwalk_df, p1_gcm_names, p1_gcm_dates)),
   
   # Set up list of nml objects, with NULL for meteo_fl
   # Transform a single file of all lakes to a single list of all lakes

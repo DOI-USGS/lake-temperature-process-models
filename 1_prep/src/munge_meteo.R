@@ -63,7 +63,6 @@ build_meteo_xwalk <- function(meteo_feathers, lake_cell_xwalk, gcm_names, gcm_da
     dplyr::relocate(c(gcm, time_period), .before=cell_no) %>%
     arrange(site_id) %>%
     left_join(meteo_branches, by=c('gcm', 'cell_no', 'time_period')) %>%
-    rowwise() %>%
-    tar_group()
+    rowwise()
   return(meteo_xwalk)
 }
