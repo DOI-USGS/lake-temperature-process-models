@@ -5,6 +5,7 @@ _targets
 1_prep/in/*
 1_prep/tmp/*
 1_prep/out/*
+2_run/tmp/*
 2_run/out/*
 
 # History files
