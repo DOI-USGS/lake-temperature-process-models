@@ -23,7 +23,6 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_no, gcm_date, outfile_template
   
   # write to feather file, specific to gcm, cell, and time period
   outfile <- sprintf(outfile_template, gcm_name, gcm_date, cell_no)
-  if(!dir.exists(dirname(outfile))) dir.create(dirname(outfile), recursive=TRUE)
   arrow::write_feather(data, outfile)
   
   return(outfile)

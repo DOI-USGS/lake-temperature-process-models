@@ -1,12 +1,15 @@
 # Targets files
 _targets
 
-# Intermediate pipeline files
-1_prep/in/*
-1_prep/tmp/*
-1_prep/out/*
-2_run/tmp/*
-2_run/out/*
+# Ignore intermediate pipeline files
+*/in/*
+*/tmp/*
+*/out/*
+
+# Allow the `.empty` files to be committed
+!*/in/.empty
+!*/tmp/.empty
+!*/out/.empty
 
 # History files
 .Rhistory

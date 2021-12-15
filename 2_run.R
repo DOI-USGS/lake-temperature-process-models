@@ -27,8 +27,6 @@ p2 <- list(
       outfile <- sprintf('2_run/out/%s_%s.feather',
                          unique(p2_glm_uncalibrated_run_groups$lake_id),
                          unique(p2_glm_uncalibrated_run_groups$gcm))
-      if(!dir.exists(dirname(outfile))) dir.create(dirname(outfile), recursive=TRUE)
-      
       # combine into single feather file and write
       purrr::map_df(p2_glm_uncalibrated_run_groups$export_fl, function(export_file) {
         arrow::read_feather(export_file)
