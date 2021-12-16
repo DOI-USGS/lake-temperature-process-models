@@ -1,3 +1,16 @@
+# Targets files
+_targets
+
+# Ignore intermediate pipeline files
+*/in/*
+*/tmp/*
+*/out/*
+
+# Allow the `.empty` files to be committed
+!*/in/.empty
+!*/tmp/.empty
+!*/out/.empty
+
 # History files
 .Rhistory
 .Rapp.history
@@ -19,6 +32,7 @@
 
 # RStudio files
 .Rproj.user/
+*.Rproj
 
 # produced vignettes
 vignettes/*.html
