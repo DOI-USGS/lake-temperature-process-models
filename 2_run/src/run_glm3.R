@@ -16,16 +16,33 @@ munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in, burn_ou
   meteo_data <- arrow::read_feather(model_config$meteo_fl) %>%
     mutate(time = as.Date(time)) %>% filter(time >= as.Date(begin) & time <= as.Date(end)) %>%
     mutate(Rain = case_when(Snow > 0 ~ 0, TRUE ~ Rain))
-  # create a burn-in. We're going to mirror the data of the first year:
-  burn_in_data <- meteo_data[2:burn_in, ] %>% arrange(desc(time)) %>%
-    mutate(time = seq(from = meteo_data[1,]$time-burn_in+1, by = 'day', length.out = length(2:burn_in)))
-  # bind with real data, prior to the begin date. We're not duplicating dates, hence the "2"
-  meteo_data <- bind_rows(burn_in_data, meteo_data)
-  # create a burn-out. Mirror the final data:
-  burn_out_data <- tail(meteo_data, burn_out) %>% head(-1L) %>% arrange(desc(time)) %>%
-    mutate(time = seq(from = tail(meteo_data,1)$time+1, by = 'day', length.out = length(2:burn_out)))
-  # bind with real data, at the end of the sequence
-  meteo_data <- bind_rows(meteo_data, burn_out_data)
+  # add the burn-in/burn-out if the requested burn-in/burn-out period is 
+  # shorter than the length of the raw meteo data
+  ndays_meteo <- nrow(meteo_data) #data is formatted as one row per day
+  if (burn_in <= ndays_meteo) {
+    # create a burn-in. We're going to mirror the data of the first year:
+    burn_in_data <- meteo_data[2:burn_in, ] %>% arrange(desc(time)) %>%
+      mutate(time = seq(from = meteo_data[1,]$time-burn_in+1, by = 'day', length.out = length(2:burn_in)))
+    # bind with real data, prior to the begin date. We're not duplicating dates, hence the "2"
+    meteo_data <- bind_rows(burn_in_data, meteo_data)
+  } else {
+    message(paste(sprintf('The requested burn-in length (%s days) exceeds', burn_in), 
+                  sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
+                   'No burn-in will be added.',
+                  sep = "\n"))
+  }
+  if (burn_out <= ndays_meteo) {
+    # create a burn-out. Mirror the final data:
+    burn_out_data <- tail(meteo_data, burn_out) %>% head(-1L) %>% arrange(desc(time)) %>%
+      mutate(time = seq(from = tail(meteo_data,1)$time+1, by = 'day', length.out = length(2:burn_out)))
+    # bind with real data, at the end of the sequence
+    meteo_data <- bind_rows(meteo_data, burn_out_data)
+  } else {
+    message(paste(sprintf('The requested burn-out length (%s days) exceeds', burn_out), 
+                  sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
+                  'No burn-out will be added.',
+                  sep = "\n"))
+  }
   return(meteo_data)
 }
 
@@ -67,7 +84,7 @@ extract_glm_output <- function(sim_lake_dir, nml_obj, export_fl) {
 #'  the name of the export feather file, its hash (NA if the model run failed), 
 #'  the duration of the model run, whether or not the model run succeeded, 
 #'  and the code returned by the call to GLM3r::run_glm(). 
-run_glm3_model <- function(sim_dir, nml_objs, model_config, export_fl_template) {
+run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, export_fl_template) {
   # pull lake_id from model_config
   lake_id <- model_config$site_id
   time_period <- model_config$time_period
@@ -86,7 +103,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, export_fl_template) 
   
   # Read in meteo data, add burn in and burn out and save to sim_lake_dir
   meteo_data <- munge_meteo_w_burn_in_out(model_config, time_period_begin, time_period_end, 
-                                          burn_in = 300, burn_out = 190)
+                                          burn_in = burn_in, burn_out = burn_out)
   sim_meteo_filename <- 'meteo_fl.csv'
   readr::write_csv(meteo_data, file.path(sim_lake_dir, sim_meteo_filename))
   
