@@ -131,6 +131,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, export_fl_template) 
         export_fl = export_fl,
         export_fl_hash = tools::md5sum(export_fl),
         glm_run_date = Sys.time(),
+        glm_version = GLM3r::glm_version(as_char = TRUE), #Needs version 3.1.18 of GLM3r
         glm_time_s = glm_time,
         glm_success = TRUE,
         glm_code = glm_code)
@@ -147,6 +148,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, export_fl_template) 
         export_fl = NA,
         export_fl_hash = NA,
         glm_run_date = Sys.time(),
+        glm_version = GLM3r::glm_version(as_char = TRUE), #Needs version 3.1.18 of GLM3r
         glm_time_s = glm_time,
         glm_success = FALSE,
         glm_code = glm_code)
