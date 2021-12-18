@@ -26,7 +26,7 @@ munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in, burn_ou
     # bind with real data, prior to the begin date. We're not duplicating dates, hence the "2"
     meteo_data <- bind_rows(burn_in_data, meteo_data)
   } else {
-    message(paste(sprintf('The requested burn-in length (%s days) exceeds', burn_in), 
+    message(paste(sprintf('The requested burn-in length (%s days) exceeds', burn_in),
                   sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
                    'No burn-in will be added.',
                   sep = "\n"))
@@ -38,7 +38,7 @@ munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in, burn_ou
     # bind with real data, at the end of the sequence
     meteo_data <- bind_rows(meteo_data, burn_out_data)
   } else {
-    message(paste(sprintf('The requested burn-out length (%s days) exceeds', burn_out), 
+    message(paste(sprintf('The requested burn-out length (%s days) exceeds', burn_out),
                   sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
                   'No burn-out will be added.',
                   sep = "\n"))
@@ -54,10 +54,7 @@ munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in, burn_ou
 #' @param sim_lake_dir the directory for the model simulation
 #' @param nml_obj the complete nml object for the model run
 #' @param export_fl the filepath for the exported feather file
-extract_glm_output <- function(sim_lake_dir, nml_obj, export_fl) {
-  out_dir <- glmtools::get_nml_value(nml_obj, arg_name = 'out_dir')
-  out_fn <- paste0(glmtools::get_nml_value(nml_obj, 'out_fn'), '.nc')
-  nc_filepath <- file.path(sim_lake_dir, out_dir, out_fn)
+extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
   lake_depth <- glmtools::get_nml_value(nml_obj, arg_name = 'lake_depth')
   export_depths <- seq(0, lake_depth, by = 0.5)
   temp_data <- glmtools::get_temp(nc_filepath, reference = 'surface', z_out = export_depths) %>%
@@ -95,7 +92,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   dir.create(sim_lake_dir, recursive=TRUE, showWarnings=FALSE)
   # delete sim_lake_dir after model has run and we've extracted the results
   on.exit(unlink(sim_lake_dir, recursive = TRUE))
-  
+
   # Define time period begin and end dates
   times <- strsplit(time_period,'_')[[1]]
   time_period_begin <- sprintf('%s-01-01', times[1])
@@ -120,25 +117,37 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
                                               stop = sim_stop))
   glmtools::write_nml(nml_obj, file.path(sim_lake_dir, 'glm3.nml'))
   
+  # In prep for checking model if model successfully ran and extracting
+  #  output, define path to output netCDF file
+  out_dir <- glmtools::get_nml_value(nml_obj, arg_name = 'out_dir')
+  out_fn <- paste0(glmtools::get_nml_value(nml_obj, 'out_fn'), '.nc')
+  nc_filepath <- file.path(sim_lake_dir, out_dir, out_fn)
+  
   # for each model run, try running the model up to 5 times
-  # if model run works, report how long that model took to run
-  # and extract output and save to feather export file
-  # return tibble with export file name and hash
-  # if model run fails after 5 attempts, return
-  # tibble indicating that it failed and giving the code
+  # if model run succeeds (returned code = 0 AND final output
+  # date coincides with the end of the simulation period), 
+  # extract output and save to feather export file, and
+  # return tibble with export file name, its hash and run
+  # diagnostics. If model run fails after 5 attempts, return
+  # tibble with model diagnostics and indicate that it failed.
   tryCatch(
     {
       retry::retry(
-        {glm_time <- system.time({glm_code <- GLM3r::run_glm(sim_lake_dir, verbose = FALSE)})[['elapsed']]},
-        until=function(val, cnd) glm_code==0,
+        {glm_time <- system.time({glm_code <- GLM3r::run_glm(sim_lake_dir, verbose = FALSE)})[['elapsed']]
+        output_dates <- glmtools::get_temp(nc_filepath) %>%
+          mutate(date = format(as.Date(lubridate::floor_date(DateTime, 'days')),"%Y-%m-%d")) %>%
+          pull(date)
+        max_output_date <- max(output_dates)
+        },
+        until=function(val, cnd) glm_code == 0 & max_output_date==sim_stop,
         max_tries = 5)
-      
-      # make sure glm did succeed
-      if(glm_code != 0) stop()
+
+      # make sure glm did succeed  
+      if(glm_code != 0 | max_output_date!=sim_stop) stop()
       
       # extract output
       export_fl <- sprintf(export_fl_template, lake_id, gcm, time_period)
-      extract_glm_output(sim_lake_dir, nml_obj, export_fl)
+      extract_glm_output(nc_filepath, nml_obj, export_fl)
       
       # Build export tibble with export file, its hash, and glm run information
       export_tibble <- tibble(
@@ -150,8 +159,11 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         glm_run_date = Sys.time(),
         glm_version = GLM3r::glm_version(as_char = TRUE), #Needs version 3.1.18 of GLM3r
         glm_time_s = glm_time,
-        glm_success = TRUE,
-        glm_code = glm_code)
+        param_sim_start = sim_start,
+        param_sim_stop = sim_stop,
+        max_output_date = max_output_date,
+        glm_code = glm_code,
+        glm_success = TRUE)
       return(export_tibble)
     },
     error = function(e) {
@@ -167,8 +179,11 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         glm_run_date = Sys.time(),
         glm_version = GLM3r::glm_version(as_char = TRUE), #Needs version 3.1.18 of GLM3r
         glm_time_s = glm_time,
-        glm_success = FALSE,
-        glm_code = glm_code)
+        param_sim_start = sim_start,
+        param_sim_stop = sim_stop,
+        max_output_date = max_output_date,
+        glm_code = glm_code,
+        glm_success = FALSE)
       return(export_tibble)
     }
   )
