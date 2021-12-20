@@ -37,6 +37,8 @@ munge_nmls <- function(nml_list_rds, lake_ids, base_nml) {
       nml <- purrr::list_modify(nml, !!!adjust_depth_args_nml(nml))
       # set meteo_fl value to NULL
       nml <- purrr::list_modify(nml, !!!c('meteo_fl' = 'NULL'))
+      # disable evaporation
+      nml <- purrr::list_modify(nml, !!!c('disable_evap' = TRUE))
       # remove helpful but non-nml values
       nml <- nml[!(names(nml) %in% c('site_id'))]
       # merge into base nml, checking arguments along the way
