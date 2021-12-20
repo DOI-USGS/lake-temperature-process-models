@@ -12,7 +12,7 @@
 #'  @param burn_out length of burn-out period, in days
 #'  @return a munged dataframe of meteorological data that includes
 #'  burn-in and burn-out time
-munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in, burn_out){
+munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in = 300, burn_out = 190){
   meteo_data <- arrow::read_feather(model_config$meteo_fl) %>%
     mutate(time = as.Date(time)) %>% filter(time >= as.Date(begin) & time <= as.Date(end)) %>%
     mutate(Rain = case_when(Snow > 0 ~ 0, TRUE ~ Rain))
