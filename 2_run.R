@@ -1,4 +1,5 @@
 source('2_run/src/run_glm3.R')
+source('2_run/src/process_glm_output.R')
 
 p2 <- list(
   # Function will generate file
@@ -28,17 +29,8 @@ p2 <- list(
   # Use grouped target to combine glm output into feather files
   # Use error = 'continue' to keep building if a branch fails
   tar_target(
-    p2_glm_uncalibrated_output_feathers,{  
-      # set filename
-      outfile <- sprintf('2_run/out/GLM_%s_%s.feather',
-                         unique(p2_glm_uncalibrated_run_groups$lake_id),
-                         unique(p2_glm_uncalibrated_run_groups$gcm))
-      # combine into single feather file and write
-      purrr::map_df(p2_glm_uncalibrated_run_groups$export_fl, function(export_file) {
-        arrow::read_feather(export_file)
-      }) %>% arrow::write_feather(outfile)
-      
-      return(outfile)},
+    p2_glm_uncalibrated_output_feathers,
+    combine_glm_output(p2_glm_uncalibrated_run_groups, outfile_template='2_run/out/GLM_%s_%s.feather'),
     format = 'file',
     pattern = map(p2_glm_uncalibrated_run_groups),
     error = 'continue')
