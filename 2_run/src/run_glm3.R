@@ -133,11 +133,17 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   tryCatch(
     {
       retry::retry(
-        {glm_time <- system.time({glm_code <- GLM3r::run_glm(sim_lake_dir, verbose = FALSE)})[['elapsed']]
-        output_dates <- glmtools::get_temp(nc_filepath) %>%
-          mutate(date = format(as.Date(lubridate::floor_date(DateTime, 'days')),"%Y-%m-%d")) %>%
-          pull(date)
-        max_output_date <- max(output_dates)
+        {
+          # set max_output_date to NA temporarily, in case netCDF values are NA and 
+          # can't be read. If max_output_date isn't updated with actual max date of 
+          # output below, will trigger the error function
+          max_output_date <- NA
+          glm_time <- system.time({glm_code <- GLM3r::run_glm(sim_lake_dir, verbose = FALSE)})[['elapsed']]
+          output_dates <- glmtools::get_temp(nc_filepath) %>%
+            mutate(date = format(as.Date(lubridate::floor_date(DateTime, 'days')),"%Y-%m-%d")) %>%
+            pull(date)
+          # update max_output_date to max date of output
+          max_output_date <- max(output_dates)
         },
         until=function(val, cnd) glm_code == 0 & max_output_date==sim_stop,
         max_tries = 5)
