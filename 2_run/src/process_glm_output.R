@@ -21,7 +21,7 @@ combine_glm_output <- function(run_groups, outfile_template) {
   # (excluding burn-in and burn-out periods)
   purrr::map2_df(run_groups$export_fl, run_groups$time_period, function(export_file, time_period) {
     # Define time period begin and end dates
-    times <- strsplit(time_period,'_')[[1]]
+    times <- strsplit(time_period,'_') %>% unlist()
     begin <- sprintf('%s-01-01', times[1])
     end <- sprintf('%s-12-31', times[2])
     # read in data for that time period and truncate
