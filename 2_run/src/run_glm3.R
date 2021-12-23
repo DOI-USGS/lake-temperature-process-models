@@ -94,7 +94,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   on.exit(unlink(sim_lake_dir, recursive = TRUE))
 
   # Define time period begin and end dates
-  times <- strsplit(time_period,'_')[[1]]
+  times <- strsplit(time_period,'_') %>% unlist()
   time_period_begin <- sprintf('%s-01-01', times[1])
   time_period_end <- sprintf('%s-12-31', times[2])
   
@@ -134,15 +134,13 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
     {
       retry::retry(
         {
-          # set max_output_date to NA temporarily, in case netCDF values are NA and 
-          # can't be read. If max_output_date isn't updated with actual max date of 
-          # output below, will trigger the error function
-          max_output_date <- NA
+          # Attempt to run GLM and store the execution time
           glm_time <- system.time({glm_code <- GLM3r::run_glm(sim_lake_dir, verbose = FALSE)})[['elapsed']]
+          # Pull out the final date from the output to
+          # check against requested simulation end date
           output_dates <- glmtools::get_temp(nc_filepath) %>%
             mutate(date = format(as.Date(lubridate::floor_date(DateTime, 'days')),"%Y-%m-%d")) %>%
             pull(date)
-          # update max_output_date to max date of output
           max_output_date <- max(output_dates)
         },
         until=function(val, cnd) glm_code == 0 & max_output_date==sim_stop,
@@ -187,7 +185,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         glm_time_s = glm_time,
         param_sim_start = sim_start,
         param_sim_stop = sim_stop,
-        max_output_date = max_output_date,
+        max_output_date = ifelse(exists("max_output_date"), max_output_date, NA), #Set to NA if couldn't be extracted
         glm_code = glm_code,
         glm_success = FALSE)
       return(export_tibble)
