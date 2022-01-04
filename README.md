@@ -54,3 +54,19 @@ exit
 
 ## Running the pipeline locally, in serial
 You can simply build targets as normal, using `tar_make()`, and `targets` will ignore the `cluster_mq.scheduler` options set in `'_targets.R'`
+
+## Running the pipeline locally, in parallel
+The pipeline can be run in parallel locally through docker, just as it can be run through shifter on denali.
+
+```bash
+cd ~/lake-temperature-process-models
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.6d bash                        
+## Now you have a shell prompt in the container, with the project directory mounted at `/lakes/`.
+## The user is shown as root.
+R
+```
+```r
+setwd("/lakes") 
+# Do a lot of work at once and test your computer's fan
+targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers = 32)
+```
