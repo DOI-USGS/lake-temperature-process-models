@@ -31,11 +31,11 @@ For any of the following applications, you'll need the shifter module:
 ```R
 module load shifter
 ```
-Here's how to get the image that Jesse built from Dockerhub and translate it to shifter
+Here's how to get the image that Jesse built from Dockerhub and translate it to shifter (this should only need to be done once per image):
 ```R
 shifterimg pull docker:jrossusgs/glm3r:v0.6d
 ```
-Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). Targets will then delegate work out to n_workers cores for any parallelizable step that you don't specifically tell it to run in serial.
+Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
 salloc --cpus-per-task=79 --image=docker:jrossusgs/glm3r:v0.6d -t 00:30:00 -A watertemp shifter Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
 ```
@@ -58,13 +58,19 @@ You can simply build targets as normal, using `tar_make()`, and `targets` will i
 ## Running the pipeline locally, in parallel
 The pipeline can be run in parallel locally through docker, just as it can be run through shifter on denali.
 
+Simple command-line R interface:
 ```bash
 cd ~/lake-temperature-process-models
-docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.6d bash                        
-## Now you have a shell prompt in the container, with the project directory mounted at `/lakes/`.
-## The user is shown as root.
-R
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.6d R
+## Now you have an R prompt in the container, with the project directory mounted at `/lakes/`.
 ```
+
+Or alternatively, you could run RStudio in the container and access it through your browser (user is rstudio, password set in the startup command as mypass).
+```bash
+cd ~/lake-temperature-process-models
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787 -e PASSWORD=mypass -e ROOT=TRUE -d jrossusgs/glm3r:v0.6d
+```
+
 ```r
 setwd("/lakes") 
 # Do a lot of work at once and test your computer's fan
