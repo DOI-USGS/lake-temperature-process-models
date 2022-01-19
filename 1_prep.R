@@ -5,19 +5,19 @@ source('1_prep/src/munge_nmls.R')
 p1 <- list(
   # pull in files from lake-temperature-model-prep
   # TODO - transfer to Denali using globus
-  # lake - GCM cell crosswalk
-  tar_target(p1_lake_cell_xwalk_csv, '1_prep/in/lake_cell_xwalk.csv', format = 'file'),
-  tar_target(p1_lake_cell_xwalk_df, readr::read_csv(p1_lake_cell_xwalk_csv, col_types=cols())),
   # list of lake-specific attributes for nml modification
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
+  # lake - GCM cell crosswalk, filtered to only those lakes that are
+  # in nml list (able to be modeled by GLM)
+  tar_target(p1_lake_cell_xwalk_csv, '1_prep/in/lake_cell_xwalk.csv', format = 'file'),
+  tar_target(p1_lake_cell_xwalk_df, 
+             readr::read_csv(p1_lake_cell_xwalk_csv, col_types=cols()) %>%
+               filter(site_id %in% names(readr::read_rds(p1_nml_list_rds)))),
 
   # Define mapping variables
-  tar_target(p1_lake_ids, 
-             p1_lake_cell_xwalk_df %>% 
-               filter(site_id %in% names(readr::read_rds(p1_nml_list_rds))) %>% 
-               pull(site_id)),
+  tar_target(p1_lake_ids, pull(p1_lake_cell_xwalk_df, site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_xwalk_df$cell_no)),
-  tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC')),
+  tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
   
   # COMMENTING OUT FOR NOW, WHILE WE REFINE NETCDF APPROACH
