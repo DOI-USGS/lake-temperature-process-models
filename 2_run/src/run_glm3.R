@@ -2,13 +2,14 @@
 #' @description function to add burn-in and burn-out to the raw meteo
 #' data by mirroring the data. From Jordan's GLM projection code: 
 #' https://github.com/jread-usgs/lake-temperature-process-models/blob/master/3_run/src/run_glm_utils.R#L62-L76
-#' @param meteo_data a dataframe of the raw meteo data, read in from the
+#' @param raw_meteo_fl the filepath for the raw meteo data, read in from the
 #' meteo_fl field of the lake-gcm-time_period crosswalk table
 #' @param burn_in length of burn-in period, in days
 #' @param burn_out length of burn-out period, in days
 #' @return a munged dataframe of meteorological data that includes
 #' burn-in and burn-out time
-add_burn_in_out_to_meteo <- function(meteo_data, burn_in = 300, burn_out = 190){
+add_burn_in_out_to_meteo <- function(raw_meteo_fl, burn_in = 300, burn_out = 190){
+  meteo_data <- arrow::read_feather(raw_meteo_fl)
   # add the burn-in/burn-out if the requested burn-in/burn-out period is 
   # shorter than the length of the raw meteo data
   ndays_meteo <- nrow(meteo_data) #data is formatted as one row per day
@@ -85,7 +86,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   lake_id <- model_config$site_id
   time_period <- model_config$time_period
   gcm <- model_config$gcm
-  meteo_fl <- model_config$meteo_fl
+  raw_meteo_fl <- model_config$meteo_fl
   
   # prepare to write inputs and results locally for quick I/O
   sim_lake_dir <- file.path(sim_dir, sprintf('%s_%s_%s', lake_id, gcm, time_period))
@@ -93,16 +94,8 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   # delete sim_lake_dir after model has run and we've extracted the results
   on.exit(unlink(sim_lake_dir, recursive = TRUE))
   
-  # Read in meteo_data
-  meteo_data <- arrow::read_feather(meteo_fl) %>%
-    mutate(time = as.Date(time))
-
-  # Define time period begin and end dates from raw meteo_data
-  time_period_begin <- min(meteo_data$time)
-  time_period_end <- max(meteo_data$time)
-  
-  # Add burn in and burn out to meteo_data and save to sim_lake_dir
-  meteo_data <- add_burn_in_out_to_meteo(meteo_data, burn_in = burn_in, burn_out = burn_out)
+  # read in meteo_data, add burn in and burn out, and save to sim_lake_dir
+  meteo_data <- add_burn_in_out_to_meteo(raw_meteo_fl, burn_in = burn_in, burn_out = burn_out)
   sim_meteo_filename <- 'meteo_fl.csv'
   readr::write_csv(meteo_data, file.path(sim_lake_dir, sim_meteo_filename))
   
@@ -160,7 +153,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         lake_id = lake_id,
         gcm = gcm,
         time_period = time_period,
-        raw_meteo_fl = meteo_fl,
+        raw_meteo_fl = raw_meteo_fl,
         burn_in = burn_in,
         burn_out = burn_out,
         export_fl = export_fl,
