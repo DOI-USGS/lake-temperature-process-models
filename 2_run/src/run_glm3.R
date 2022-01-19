@@ -176,7 +176,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         lake_id = lake_id,
         gcm = gcm,
         time_period = time_period,
-        raw_meteo_fl = meteo_fl,
+        raw_meteo_fl = raw_meteo_fl,
         burn_in = burn_in,
         burn_out = burn_out,
         export_fl = NA,
