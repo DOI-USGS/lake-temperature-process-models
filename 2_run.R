@@ -21,7 +21,7 @@ p2 <- list(
   tar_target(
     p2_glm_uncalibrated_run_groups,
     p2_glm_uncalibrated_runs %>%
-      select(lake_id, gcm, time_period, export_fl, export_fl_hash) %>%
+      select(lake_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash) %>%
       group_by(lake_id, gcm) %>% 
       tar_group(),
     iteration = "group"
