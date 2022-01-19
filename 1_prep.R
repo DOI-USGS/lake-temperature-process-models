@@ -7,13 +7,13 @@ p1 <- list(
   # TODO - transfer to Denali using globus
   # list of lake-specific attributes for nml modification
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
-  tar_target(p1_nml_lakes, names(readr::read_rds(p1_nml_list_rds))),
+  tar_target(p1_nml_lake_ids, names(readr::read_rds(p1_nml_list_rds))),
   # lake - GCM cell crosswalk, filtered to only those lakes that are
   # in nml list (able to be modeled by GLM)
   tar_target(p1_lake_cell_xwalk_csv, '1_prep/in/lake_cell_xwalk.csv', format = 'file'),
   tar_target(p1_lake_cell_xwalk_df, 
              readr::read_csv(p1_lake_cell_xwalk_csv, col_types=cols()) %>%
-               filter(site_id %in% p1_nml_lakes)),
+               filter(site_id %in% p1_nml_lake_ids)),
 
   # Define mapping variables
   tar_target(p1_lake_ids, pull(p1_lake_cell_xwalk_df, site_id)),
