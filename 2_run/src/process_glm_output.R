@@ -21,8 +21,7 @@ combine_glm_output <- function(run_groups, outfile_template) {
   # (excluding burn-in and burn-out periods)
   purrr::map2_df(run_groups$raw_meteo_fl, run_groups$export_fl, function(raw_meteo_fl, export_file) {
     # Define time period begin and end dates from raw meteo_fl
-    meteo_data <- arrow::read_feather(raw_meteo_fl) %>%
-      mutate(time = as.Date(time))
+    meteo_data <- arrow::read_feather(raw_meteo_fl, col_select = "time")
     begin <- min(meteo_data$time)
     end <- max(meteo_data$time)
     # read in data for that time period and truncate
