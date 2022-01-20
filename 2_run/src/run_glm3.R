@@ -1,21 +1,15 @@
-#' @title Munge meteo and add burn-in and burn-out
-#' @description function to read in the raw meteorological data
-#' form the file specified in the model_config, filter it based
-#' on the specified time_period, and add burn-in and burn-out
-#' periods by mirroring the data. From Jordan's GLM projection code: 
+#' @title Add burn-in and burn-out to raw meteo data
+#' @description function to add burn-in and burn-out to the raw meteo
+#' data by mirroring the data. From Jordan's GLM projection code: 
 #' https://github.com/jread-usgs/lake-temperature-process-models/blob/master/3_run/src/run_glm_utils.R#L62-L76
-#' @param model_config a lake-gcm-time_period crosswalk table with the 
-#'  meteo file name and hash for each model run
-#'  @param begin the begin date for the model time_period
-#'  @param end the end date for the model_time_period
-#'  @param burn_in length of burn-in period, in days
-#'  @param burn_out length of burn-out period, in days
-#'  @return a munged dataframe of meteorological data that includes
-#'  burn-in and burn-out time
-munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in = 300, burn_out = 190){
-  meteo_data <- arrow::read_feather(model_config$meteo_fl) %>%
-    mutate(time = as.Date(time)) %>% filter(time >= as.Date(begin) & time <= as.Date(end)) %>%
-    mutate(Rain = case_when(Snow > 0 ~ 0, TRUE ~ Rain))
+#' @param raw_meteo_fl the filepath for the raw meteo data, read in from the
+#' meteo_fl field of the lake-gcm-time_period crosswalk table
+#' @param burn_in length of burn-in period, in days
+#' @param burn_out length of burn-out period, in days
+#' @return a munged dataframe of meteorological data that includes
+#' burn-in and burn-out time
+add_burn_in_out_to_meteo <- function(raw_meteo_fl, burn_in = 300, burn_out = 190){
+  meteo_data <- arrow::read_feather(raw_meteo_fl)
   # add the burn-in/burn-out if the requested burn-in/burn-out period is 
   # shorter than the length of the raw meteo data
   ndays_meteo <- nrow(meteo_data) #data is formatted as one row per day
@@ -51,7 +45,7 @@ munge_meteo_w_burn_in_out <- function(model_config, begin, end, burn_in = 300, b
 #' run and save to the export feather file. 
 #' From Jordan's GLM projection code: 
 #' https://github.com/jread-usgs/lake-temperature-process-models/blob/master/3_run/src/run_glm_utils.R#L89-L101
-#' @param sim_lake_dir the directory for the model simulation
+#' @param nc_filepath the path for the netCDF output file for the simulation
 #' @param nml_obj the complete nml object for the model run
 #' @param export_fl the filepath for the exported feather file
 extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
@@ -75,6 +69,12 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
 #'  @param nml_objs list of nml objects (one per lake id), named by lake id
 #'  @param model_config a lake-gcm-time_period crosswalk table with the 
 #'  meteo file name and hash for each model run
+#'  @param burn_in length of burn-in period, in days. Used to mirror the 
+#'  start of the raw meteorological data to create a burn-in period for 
+#'  the model simulation.
+#'  @param burn_out length of burn-out period, in days. Used to mirror the 
+#'  end of the raw meteorological data to create a burn-out period for 
+#'  the model simulation.
 #'  @param export_fl_template the template for constructing the filepath 
 #'  for the export feather file that will be saved in `extract_glm_ouput()`
 #'  @return a tibble which includes the run_date, lake_id, gcm, time_period, 
@@ -86,21 +86,16 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   lake_id <- model_config$site_id
   time_period <- model_config$time_period
   gcm <- model_config$gcm
+  raw_meteo_fl <- model_config$meteo_fl
   
   # prepare to write inputs and results locally for quick I/O
   sim_lake_dir <- file.path(sim_dir, sprintf('%s_%s_%s', lake_id, gcm, time_period))
   dir.create(sim_lake_dir, recursive=TRUE, showWarnings=FALSE)
   # delete sim_lake_dir after model has run and we've extracted the results
   on.exit(unlink(sim_lake_dir, recursive = TRUE))
-
-  # Define time period begin and end dates
-  times <- strsplit(time_period,'_') %>% unlist()
-  time_period_begin <- sprintf('%s-01-01', times[1])
-  time_period_end <- sprintf('%s-12-31', times[2])
   
-  # Read in meteo data, add burn in and burn out and save to sim_lake_dir
-  meteo_data <- munge_meteo_w_burn_in_out(model_config, time_period_begin, time_period_end, 
-                                          burn_in = burn_in, burn_out = burn_out)
+  # read in meteo_data, add burn in and burn out, and save to sim_lake_dir
+  meteo_data <- add_burn_in_out_to_meteo(raw_meteo_fl, burn_in = burn_in, burn_out = burn_out)
   sim_meteo_filename <- 'meteo_fl.csv'
   readr::write_csv(meteo_data, file.path(sim_lake_dir, sim_meteo_filename))
   
@@ -158,6 +153,9 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         lake_id = lake_id,
         gcm = gcm,
         time_period = time_period,
+        raw_meteo_fl = raw_meteo_fl,
+        burn_in = burn_in,
+        burn_out = burn_out,
         export_fl = export_fl,
         export_fl_hash = tools::md5sum(export_fl),
         glm_run_date = Sys.time(),
@@ -178,6 +176,9 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         lake_id = lake_id,
         gcm = gcm,
         time_period = time_period,
+        raw_meteo_fl = raw_meteo_fl,
+        burn_in = burn_in,
+        burn_out = burn_out,
         export_fl = NA,
         export_fl_hash = NA,
         glm_run_date = Sys.time(),

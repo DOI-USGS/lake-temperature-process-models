@@ -19,11 +19,11 @@ combine_glm_output <- function(run_groups, outfile_template) {
   # combine into single feather file and write
   # truncating output for each time period to valid dates
   # (excluding burn-in and burn-out periods)
-  purrr::map2_df(run_groups$export_fl, run_groups$time_period, function(export_file, time_period) {
-    # Define time period begin and end dates
-    times <- strsplit(time_period,'_') %>% unlist()
-    begin <- sprintf('%s-01-01', times[1])
-    end <- sprintf('%s-12-31', times[2])
+  purrr::map2_df(run_groups$raw_meteo_fl, run_groups$export_fl, function(raw_meteo_fl, export_file) {
+    # Define time period begin and end dates from raw meteo_fl
+    meteo_data <- arrow::read_feather(raw_meteo_fl, col_select = "time")
+    begin <- min(meteo_data$time)
+    end <- max(meteo_data$time)
     # read in data for that time period and truncate
     arrow::read_feather(export_file) %>%
       filter(time >= as.Date(begin) & time <= as.Date(end))

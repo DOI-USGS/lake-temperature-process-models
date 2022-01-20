@@ -25,7 +25,7 @@ build_model_config <- function(meteo_feathers, lake_cell_xwalk, gcm_names, gcm_d
     cell_no = as.numeric(str_extract(tools::file_path_sans_ext(meteo_fl), paste0(cell_no_list, "$")))
   )
   model_config <- tidyr::expand_grid(
-    nesting(select(lake_cell_xwalk, site_id, ID, cell_no)),
+    nesting(select(lake_cell_xwalk, site_id, state, cell_no)),
     gcm = gcm_names, 
     time_period = gcm_dates) %>%
     dplyr::relocate(c(gcm, time_period), .before=cell_no) %>%
