@@ -37,11 +37,11 @@ shifterimg pull docker:jrossusgs/glm3r:v0.6d
 ```
 Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
-salloc --cpus-per-task=79 --image=docker:jrossusgs/glm3r:v0.6d -t 00:30:00 -A watertemp shifter Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
+srun --pty --cpus-per-task=79 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
 ```
 Here's how to run the shifter container interactively on an allocated job:
 ```R
-salloc -c 1 --image=docker:jrossusgs/glm3r:v0.6d -t 00:30:00 -A watertemp shifter /bin/bash
+srun --pty --cpus-per-task=79 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d /bin/bash
 # when you're in the shifter environment, the prompt starts with "I have no name!@"
 R
 library(targets)
