@@ -35,13 +35,13 @@ Here's how to get the image that Jesse built from Dockerhub and translate it to 
 ```R
 shifterimg pull docker:jrossusgs/glm3r:v0.6d
 ```
-Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
+Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
-srun --pty --cpus-per-task=79 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
+srun --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
 ```
 Here's how to run the shifter container interactively on an allocated job:
 ```R
-srun --pty --cpus-per-task=79 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d /bin/bash
+srun --pty --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d /bin/bash
 # when you're in the shifter environment, the prompt starts with "I have no name!@"
 R
 library(targets)
@@ -50,6 +50,24 @@ tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)
 q()
 exit
 ```
+
+Alternatively, once a node is allocated it can be ssh'ed to:
+```bash
+jross@denali-login2:~> module load shifter
+jross@denali-login2:~> salloc -n 1 -t 07:00:00 -A watertemp
+salloc: Granted job allocation 2788434
+salloc: Waiting for resource configuration
+salloc: Nodes nid00418 are ready for job
+jross@denali-login2:~> ssh nid00418
+
+*** Welcome to IMPS compute node c2-0c0s8n2 (nid 418) ***
+    Running 200MB Suse 15 image slurm_compute-large_up01
+    CLE release 7.0.UP01, build 7.0.1214(20190926)
+    80 vcores, boot_freemem: 190174mb
+
+jross@nid00418:~>
+```
+
 -----------------
 
 ## Running the pipeline locally, in serial
