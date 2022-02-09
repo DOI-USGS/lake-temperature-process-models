@@ -6,8 +6,8 @@
 #' (excluding the burn-in and burn-out periods), and save the
 #' result as a single feather file
 #' @param run_groups a grouped version of the `p2_glm_uncalibrated_runs`
-#' output tibble subset to the lake_id, gcm, time_period, export_fl, 
-#' and export_fl_hash columns and grouped by lake_id and gcm.
+#' output tibble subset to the lake_id, gcm, time_period, raw_meteo_fl, 
+#' export_fl, and export_fl_hash columns and grouped by lake_id and gcm.
 #' The function maps over these groups.
 #' @param outfile_template the template for the name of the
 #' final output feather file
