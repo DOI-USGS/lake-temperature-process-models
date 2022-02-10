@@ -3,10 +3,11 @@ source('2_run/src/run_glm3.R')
 p2 <- list(
   # Function will generate file
   # but return a tibble that includes that filename and its hash
+  # put simulation directories in sub-directory for easy deletion
   tar_target(
     p2_glm_uncalibrated_runs,
     run_glm3_model(
-      sim_dir = '2_run/tmp',
+      sim_dir = '2_run/tmp/simulations',
       nml_objs = p1_nml_objects,
       model_config = p1_model_config,
       burn_in = 300,
