@@ -22,18 +22,8 @@ p3 <- list(
   # Generate a zip file for each tile, zipping the grouped feathers
   tar_target(
     p3_glm_uncalibrated_output_zips,
-    {
-      files_to_zip <- p3_glm_uncalibrated_output_feather_groups$export_fl
-      zipfile_out <- sprintf('3_extract/out/GLM_tile%s.zip', 
-                          unique(p3_glm_uncalibrated_output_feather_groups$tile_no))
-      # In order to use `zip`, you need to be in the same working directory as
-      # the files you want to zip up.
-      project_dir <- getwd()
-      setwd(unique(dirname(files_to_zip)))
-      zip::zip(file.path(project_dir, zipfile_out), basename(files_to_zip))
-      setwd(project_dir)
-      return(zipfile_out)
-    },
+    zip_output_files(p3_glm_uncalibrated_output_feather_groups,
+                     zipfile_template= '3_extract/out/GLM_tile%s.zip'),
     format = 'file',
     pattern = map(p3_glm_uncalibrated_output_feather_groups)
   )

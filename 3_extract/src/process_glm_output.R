@@ -43,3 +43,23 @@ combine_glm_output <- function(run_groups, lake_cell_tile_xwalk, outfile_templat
     left_join(lake_cell_tile_xwalk, by=c('site_id'))
   return(export_tibble)
 }
+
+#' @title Zip up output from GLM model runs
+#' @description function to zip up the feather files for each lake-gcm
+#' combo according to the tile_no associated with that lake
+#' @param feather_groups a grouped version of the `p3_glm_uncalibrated_output_feathers`
+#' output tibble grouped by tile_no. The function maps over these groups.
+#' @param zipfile_template the template for the name of the
+#' final zipped file of feather files
+#' @return the name of the zipped file 
+zip_output_files <- function(feather_groups, zipfile_template) {
+  files_to_zip <- feather_groups$export_fl
+  zipfile_out <- sprintf(zipfile_template, unique(feather_groups$tile_no))
+  # In order to use `zip`, you need to be in the same working directory as
+  # the files you want to zip up.
+  project_dir <- getwd()
+  setwd(unique(dirname(files_to_zip)))
+  zip::zip(file.path(project_dir, zipfile_out), basename(files_to_zip))
+  setwd(project_dir)
+  return(zipfile_out)
+}
