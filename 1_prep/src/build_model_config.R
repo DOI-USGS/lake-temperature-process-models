@@ -24,6 +24,11 @@ build_model_config <- function(meteo_feathers, lake_cell_tile_xwalk, gcm_names, 
     # just before the file extension
     cell_no = as.numeric(str_extract(tools::file_path_sans_ext(meteo_fl), paste0(cell_no_list, "$")))
   )
+  # build model config table, with one row per lake-gcm-time-period combination
+  # and the `meteo_fl` filename and `meteo_fl_hash` for each model run. Leave out `cell_no`
+  # from the final tibble since it is not used during model execution and if changed,
+  # should not trigger rebuilds unless the underlying data changes, which is 
+  # captured by the `meteo_fl_hash` column
   model_config <- tidyr::expand_grid(
     nesting(select(lake_cell_tile_xwalk, site_id, state, cell_no)),
     gcm = gcm_names, 
@@ -31,6 +36,7 @@ build_model_config <- function(meteo_feathers, lake_cell_tile_xwalk, gcm_names, 
     dplyr::relocate(c(gcm, time_period), .before=cell_no) %>%
     arrange(site_id) %>%
     left_join(meteo_branches, by=c('gcm', 'cell_no', 'time_period')) %>%
+    select(-cell_no) %>%
     rowwise()
   return(model_config)
 }
