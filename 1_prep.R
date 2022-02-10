@@ -7,17 +7,19 @@ p1 <- list(
   # TODO - transfer to Denali using globus
   # list of lake-specific attributes for nml modification
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
-  tar_target(p1_nml_lake_ids, names(readr::read_rds(p1_nml_list_rds))),
+  tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
   # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
   #  that are in nml list (able to be modeled by GLM)
   tar_target(p1_lake_cell_tile_xwalk_csv, '1_prep/in/lake_cell_tile_xwalk.csv', format = 'file'),
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
-               filter(site_id %in% p1_nml_lake_ids) %>%
-               arrange(site_id)),
+               filter(site_id %in% p1_nml_site_ids) %>%
+               arrange(site_id) %>%
+               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097',
+                                     'nhdhr_120019185','nhdhr_114544667'))),
 
   # Define mapping variables
-  tar_target(p1_lake_ids, pull(p1_lake_cell_tile_xwalk_df, site_id)),
+  tar_target(p1_site_ids, pull(p1_lake_cell_tile_xwalk_df, site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df$cell_no)),
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
@@ -52,11 +54,11 @@ p1 <- list(
   
   # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes
-  # (subset to p1_lake_ids), then tell `targets` to think of that list as an iterable list
+  # (subset to p1_site_ids), then tell `targets` to think of that list as an iterable list
   tar_target(p1_glm_template_nml, '1_prep/in/glm3_template.nml', format = 'file'),
   tar_target(p1_nml_objects,
              munge_nmls(nml_list_rds = p1_nml_list_rds,
-                        lake_ids = p1_lake_ids,
+                        site_ids = p1_site_ids,
                         base_nml = p1_glm_template_nml),
              packages = c('glmtools'))
 )
