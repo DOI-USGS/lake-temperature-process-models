@@ -18,7 +18,8 @@ p2 <- list(
   # Group model runs by lake id and gcm
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
-  # Filter to only successful model runs within each group
+  # Filter to groups where all model runs were successful 
+  # (if any failed, the group is filtered out)
   tar_target(
     p2_glm_uncalibrated_run_groups,
     p2_glm_uncalibrated_runs %>%

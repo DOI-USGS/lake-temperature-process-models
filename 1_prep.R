@@ -6,10 +6,12 @@ p1 <- list(
   # pull in files from lake-temperature-model-prep
   # TODO - transfer to Denali using globus
   # list of lake-specific attributes for nml modification
+  # file copied from lake-temperature-model-prep repo
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
   # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
-  #  that are in nml list (able to be modeled by GLM)
+  # that are in nml list (able to be modeled by GLM)
+  # file copied from lake-temperature-model-prep repo
   tar_target(p1_lake_cell_tile_xwalk_csv, '1_prep/in/lake_cell_tile_xwalk.csv', format = 'file'),
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
@@ -17,7 +19,7 @@ p1 <- list(
                arrange(site_id)),
 
   # Define mapping variables
-  tar_target(p1_site_ids, pull(p1_lake_cell_tile_xwalk_df, site_id)),
+  tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df$site_id),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df$cell_no)),
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
