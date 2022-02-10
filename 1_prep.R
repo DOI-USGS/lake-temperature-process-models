@@ -14,9 +14,7 @@ p1 <- list(
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
-               arrange(site_id) %>%
-               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097',
-                                     'nhdhr_120019185','nhdhr_114544667'))),
+               arrange(site_id)),
 
   # Define mapping variables
   tar_target(p1_site_ids, pull(p1_lake_cell_tile_xwalk_df, site_id)),
