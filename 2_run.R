@@ -1,5 +1,4 @@
 source('2_run/src/run_glm3.R')
-source('2_run/src/process_glm_output.R')
 
 p2 <- list(
   # Function will generate file
@@ -15,23 +14,19 @@ p2 <- list(
       export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather'),
     packages = c('retry','glmtools', 'GLM3r'),
     pattern = map(p1_model_config)),
+  
   # Group model runs by lake id and gcm
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
+  # Filter to groups where all model runs were successful 
+  # (if any failed, the group is filtered out)
   tar_target(
     p2_glm_uncalibrated_run_groups,
     p2_glm_uncalibrated_runs %>%
-      select(lake_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash) %>%
-      group_by(lake_id, gcm) %>% 
+      select(site_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash, glm_success) %>%
+      group_by(site_id, gcm) %>% 
+      filter(all(glm_success)) %>%
       tar_group(),
     iteration = "group"
-  ),
-  # Use grouped target to combine glm output into feather files
-  # Use error = 'continue' to keep building if a branch fails
-  tar_target(
-    p2_glm_uncalibrated_output_feathers,
-    combine_glm_output(p2_glm_uncalibrated_run_groups, outfile_template='2_run/out/GLM_%s_%s.feather'),
-    format = 'file',
-    pattern = map(p2_glm_uncalibrated_run_groups),
-    error = 'continue')
+  )
 )

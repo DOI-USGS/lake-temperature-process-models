@@ -4,15 +4,15 @@
 #' and (2) data hash for the meteo data for each combo. We can use this to run models.
 #' For the string extraction to work, cell_no must be at the END of the meteo filename
 #' @param meteo_feathers - names of the cell/gcm/time-period specific feather files
-#' @param lake_cell_xwalk - mapping of which lakes fall into which gcm cells
+#' @param lake_cell_tile_xwalk - mapping of which lakes fall into which gcm cells and tiles
 #' @param gcm_names - names of the 6 GCMs
 #' @param gcm_dates - the three GCM time periods, defined by their bracketing years
 #' @return a dplyr tibble with one row per model run
-build_model_config <- function(meteo_feathers, lake_cell_xwalk, gcm_names, gcm_dates){
+build_model_config <- function(meteo_feathers, lake_cell_tile_xwalk, gcm_names, gcm_dates){
   # collapse the gcm_names, gcm_date, and cell_no vectors for use in string matching
   gcm_name_list <- paste(gcm_names,collapse="|")
   gcm_date_list <- paste(gcm_dates,collapse="|")
-  cell_no_list <- paste(unique(lake_cell_xwalk$cell_no),collapse= "|")
+  cell_no_list <- paste(unique(lake_cell_tile_xwalk$cell_no),collapse= "|")
   # Build tibble of meteo files, branches, hashes, gcm name, cell_no, and time_period
   meteo_branches <- tibble(
     meteo_fl = meteo_feathers,
@@ -24,13 +24,19 @@ build_model_config <- function(meteo_feathers, lake_cell_xwalk, gcm_names, gcm_d
     # just before the file extension
     cell_no = as.numeric(str_extract(tools::file_path_sans_ext(meteo_fl), paste0(cell_no_list, "$")))
   )
+  # build model config table, with one row per lake-gcm-time-period combination
+  # and the `meteo_fl` filename and `meteo_fl_hash` for each model run. Leave out `cell_no`
+  # from the final tibble since it is not used during model execution and if changed,
+  # should not trigger rebuilds unless the underlying data changes, which is 
+  # captured by the `meteo_fl_hash` column
   model_config <- tidyr::expand_grid(
-    nesting(select(lake_cell_xwalk, site_id, state, cell_no)),
+    nesting(select(lake_cell_tile_xwalk, site_id, state, cell_no)),
     gcm = gcm_names, 
     time_period = gcm_dates) %>%
     dplyr::relocate(c(gcm, time_period), .before=cell_no) %>%
     arrange(site_id) %>%
     left_join(meteo_branches, by=c('gcm', 'cell_no', 'time_period')) %>%
+    select(-cell_no) %>%
     rowwise()
   return(model_config)
 }
