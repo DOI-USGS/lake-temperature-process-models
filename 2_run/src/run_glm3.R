@@ -162,6 +162,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         }
       )
       # If extraction error is NOT NA, trigger error
+      # and return the error export_tibble
       if (!is.na(extraction_error)) stop()
       
       # If output was extracted, delete simulation directory
