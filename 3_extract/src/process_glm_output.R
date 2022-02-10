@@ -14,7 +14,9 @@
 #' gcm cells and tiles
 #' @param outfile_template the template for the name of the
 #' final output feather file
-#' @return TIBBLE the name of the output feather file
+#' @return a tibble with one row per lake-gcm combo which includes the 
+#' site_id, gcm, the name of the export feather file, its hash, and 
+#' the cell_no and tile_no for the GCM data for that lake. 
 combine_glm_output <- function(run_groups, lake_cell_tile_xwalk, outfile_template) {
   # set filename
   outfile <- sprintf(outfile_template, unique(run_groups$site_id), unique(run_groups$gcm))
