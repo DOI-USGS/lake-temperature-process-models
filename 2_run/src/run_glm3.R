@@ -204,7 +204,7 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
         burn_out = burn_out,
         export_fl = NA,
         export_fl_hash = NA,
-        extraction_error = ifelse(exists("extraction_error"), extraction_error, NA),
+        extraction_error = ifelse(exists("extraction_error"), extraction_error, NA), # If the error happened prior to the attempt at extraction, need to provide an NA here
         glm_run_date = Sys.time(),
         glm_version = GLM3r::glm_version(as_char = TRUE), #Needs version 3.1.18 of GLM3r
         glm_time_s = glm_time,
