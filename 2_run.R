@@ -6,7 +6,7 @@ p2 <- list(
   tar_target(
     p2_glm_uncalibrated_runs,
     run_glm3_model(
-      sim_dir = '2_run/tmp/simulations',
+      sim_dir = '2_run/tmp',
       nml_objs = p1_nml_objects,
       model_config = p1_model_config,
       burn_in = 300,
