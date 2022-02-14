@@ -16,7 +16,7 @@ build_model_config <- function(meteo_feathers, lake_cell_tile_xwalk, gcm_names, 
   # Build tibble of meteo files, branches, hashes, gcm name, cell_no, and time_period
   meteo_branches <- tibble(
     meteo_fl = meteo_feathers,
-    meteo_fl_hash = map_chr(names(meteo_feathers), ~ tar_meta(starts_with(.x))$data),
+    meteo_fl_hash = tools::md5sum(meteo_feathers),
     gcm = stringr::str_extract(meteo_fl, gcm_name_list),
     time_period = stringr::str_extract(meteo_fl, gcm_date_list),
     # cell_no is the very last part of the file name and so this str_extract() is 
