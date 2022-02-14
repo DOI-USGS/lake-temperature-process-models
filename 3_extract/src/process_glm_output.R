@@ -2,7 +2,7 @@
 #' @description function to read in the raw output from the 3 GLM
 #' runs for each fully successful lake-gcm combo (set by grouping of 
 #' `p2_glm_uncalibrated_run_groups`), filter that output to the 
-#' burn-out periods), and save the result as a single feather file
+#' burn-out periods, and save the result as a single feather file
 #' @param run_group a single group from the `p2_glm_uncalibrated_run_groups`
 #' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
 #' to the site_id, gcm, time_period, raw_meteo_fl, export_fl, and 
@@ -36,11 +36,10 @@ combine_glm_output <- function(run_group, outfile_template) {
 #' @title Generate a tibble of information about the output
 #' feather files
 #' @description Generate a tibble with a row for each output file
-#' that includes its filename and its hash along with the
-#' site_id, gcm, the state the lake is in, and the cell_no 
-#' and tile_no for that lake. Use the lake_cell_tile_xwalk to determine 
-#' which tile each lake falls into, and then group the feather files
-#' (unique to each lake-gcm combo) by tile_no
+#' (unique to each lake-gcm combo) that includes its filename and its 
+#' hash along with the site_id, gcm, the state the lake is in, and 
+#' the cell_no and tile_no for that lake. Use the lake_cell_tile_xwalk 
+#' to determine which tile each lake falls into
 #' @param run_group a single group from the `p2_glm_uncalibrated_run_groups`
 #' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
 #' to the site_id, gcm, time_period, raw_meteo_fl, export_fl, and 
@@ -48,7 +47,8 @@ combine_glm_output <- function(run_group, outfile_template) {
 #' only groups for which glm_success==TRUE for all runs in that group. 
 #' The function maps over these groups.
 #' @param output_feather A single feather file name from the list of 
-#' output feather file names. The function maps over these file names.
+#' output feather file names returned by `combine_glm_output()`. 
+#' The function maps over these file names.
 #' @param lake_cell_tile_xwalk - mapping of which lakes fall into which 
 #' gcm cells and tiles
 #' @return A tibble with one row per lake-gcm output feather file which 
@@ -70,10 +70,10 @@ generate_output_tibble <- function(run_group, output_feather, lake_cell_tile_xwa
 #' @title Zip up output from GLM model runs
 #' @description function to zip up the feather files for all lake-gcm
 #' combos according to the tile_no associated with each lake
-#' @param feather_group A single group associated with one tile, from the 
-#' `p3_glm_uncalibrated_output_feather_groups` grouped version of the 
-#' `p3_glm_uncalibrated_output_feather_tibble` target grouped by tile_no.
-#' The function maps over these groups.
+#' @param feather_group A single group of output feather files associated 
+#' with one tile, from the `p3_glm_uncalibrated_output_feather_groups` 
+#' grouped version of the `p3_glm_uncalibrated_output_feather_tibble` 
+#' target grouped by tile_no. The function maps over these groups.
 #' @param zipfile_template the template for the name of the
 #' final zipped file of feather files
 #' @return the name of the zipped file 
