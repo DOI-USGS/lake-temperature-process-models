@@ -19,7 +19,7 @@
 #' the lake is in, and the cell_no and tile_no for the GCM data for that lake. 
 combine_glm_output <- function(run_groups, lake_cell_tile_xwalk, outfile_template) {
   # set filename
-  outfile <- sprintf(outfile_template, unique(run_groups$site_id), unique(run_groups$gcm))
+  outfile <- sprintf(outfile_template, unique(run_groups$gcm), unique(run_groups$site_id))
   
   # combine into single feather file and write
   # truncating output for each time period to valid dates
