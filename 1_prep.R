@@ -60,6 +60,7 @@ p1 <- list(
              munge_nmls(nml_list_rds = p1_nml_list_rds,
                         site_ids = p1_site_ids,
                         base_nml = p1_glm_template_nml),
-             packages = c('glmtools'))
+             packages = c('glmtools'),
+             iteration = 'list')
 )
 
