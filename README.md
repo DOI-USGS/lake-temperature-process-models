@@ -94,3 +94,21 @@ setwd("/lakes")
 # Do a lot of work at once and test your computer's fan
 targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers = 32)
 ```
+
+## Running interactive RStudio sessions on HPC
+
+_These are brief notes meant to act as guidelines. Unified documentation on this will be coming in early 2022._
+
+Shifter on denali is not recommended for running interactive RStudio sessions on HPC. In order to do interactive sessions, it is better to use singularity on tallgrass. Both shifter and singularity are containerization programs, but singularity is a lot more widespread, is supported for RStudio, and is the way future USGS HPC platforms are going.
+
+### Quick Start
+The home directories and `/caldera/` filesystems are the same on tallgrass as on caldera. In order to get an interactive session:
+
+1. Pull the docker image into a singularity image, if that hasn't already been done. A singularity image is just a `.sif` file, and it can be located anywhere. So, for example, `singularity pull docker://jrossusgs/glm3r:v0.6_GLM_3.2.0a8`.
+1. `module load slurm` and `cd` to the project directory
+1. Update the `launch-rstudio-container.slurm` file to point to this by changing the value of `SIF_FILE` to point to your `.sif` file. Use a full path if the `.sif` file isn't in the project directory.
+1. To launch the container, `sbatch launch-rstudio-container.slurm`.
+1. To view instructions for accessing the RStudio instance, see `tmp/rstudio_<USERNAME>.out`
+
+### Caution
+RStudio may not be as good an environment for running parallelized targets pipelines as running them through `Rscript -e`. The [clustermq user guide](https://cran.r-project.org/web/packages/clustermq/vignettes/userguide.html) says that the `multicore` scheduler sometimes causes problems in RStudio. If this happens, you might need to switch to `multiprocess` and uses more RAM. Might not be a problem, just something to be aware of!
