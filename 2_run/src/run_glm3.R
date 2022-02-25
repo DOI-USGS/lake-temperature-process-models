@@ -66,7 +66,7 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
 #'  successful, the results are extracted and saved to '2_run/tmp' using
 #'  `extract_glm_ouput()` and then the simulation directory is deleted 
 #'  @param sim_dir base directory for simulations
-#'  @param nml_objs list of nml objects (one per lake id), named by lake id
+#'  @param nml_obj nml object for the current lake
 #'  @param model_config a lake-gcm-time_period crosswalk table with the 
 #'  meteo file name and hash for each model run
 #'  @param burn_in length of burn-in period, in days. Used to mirror the 
@@ -81,13 +81,13 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
 #'  the name of the export feather file, its hash (NA if the model run failed), 
 #'  the duration of the model run, whether or not the model run succeeded, 
 #'  and the code returned by the call to GLM3r::run_glm(). 
-run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, export_fl_template) {
-  # pull site_id from model_config
+run_glm3_model <- function(sim_dir, nml_obj, model_config, burn_in, burn_out, export_fl_template) {
+  # pull parameters from model_config
   site_id <- model_config$site_id
   time_period <- model_config$time_period
   gcm <- model_config$gcm
   raw_meteo_fl <- model_config$meteo_fl
-  
+
   # prepare to write inputs and results locally for quick I/O
   sim_lake_dir <- file.path(sim_dir, sprintf('%s_%s_%s', site_id, gcm, time_period))
   dir.create(sim_lake_dir, recursive=TRUE, showWarnings=FALSE)
@@ -102,7 +102,6 @@ run_glm3_model <- function(sim_dir, nml_objs, model_config, burn_in, burn_out, e
   sim_stop <- format(tail(meteo_data, 1L)$time, "%Y-%m-%d")
   
   # write nml file, specifying meteo file and start and stop dates:
-  nml_obj <- nml_objs[[site_id]]
   nml_obj <- set_nml(nml_obj, arg_list = list(nsave = 24, 
                                               meteo_fl = sim_meteo_filename,
                                               sim_name = sprintf('%s_%s_%s', site_id, gcm, time_period),
