@@ -20,11 +20,11 @@ p3 <- list(
     pattern = map(p2_glm_uncalibrated_run_groups, p3_glm_uncalibrated_output_feathers)
   ),
   
-  # Group output feather tibble by tile number
+  # Group output feather tibble by spatial tile number
   tar_target(
     p3_glm_uncalibrated_output_feather_groups,
     p3_glm_uncalibrated_output_feather_tibble %>%
-      group_by(tile_no) %>%
+      group_by(spatial_tile_no) %>%
       tar_group(),
     iteration = "group"
   ),
