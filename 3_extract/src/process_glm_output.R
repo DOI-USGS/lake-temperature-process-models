@@ -10,13 +10,17 @@
 #' export_fl, and export_fl_hash columns and grouped by site_id and gcm.
 #' Then filtered to only groups for which glm_success==TRUE for all runs
 #' in that group. The function maps over these groups.
-#' @param lake_cell_tile_xwalk - mapping of which lakes fall into which 
-#' gcm cells and tiles
+#' @param lake_cell_tile_xwalk - mapping of which lakes fall into which gcm 
+#' cells and tiles (parameters `spatial_cell_no` and `spatial_tile_no`) and 
+#' which gcm cell to use for driver data for each lake (`data_cell_no`,
+#' `data_tile_no`). `data_cell_no` will only differ from `spatial_cell_no` 
+#' for those lakes that fall within gcm cells that are missing data.
 #' @param outfile_template the template for the name of the
 #' final output feather file
 #' @return a tibble with one row per lake-gcm combo which includes the 
 #' site_id, gcm, the name of the export feather file, its hash, the state 
-#' the lake is in, and the cell_no and tile_no for the GCM data for that lake. 
+#' the lake is in, and the GCM spatial_cell_no, spatial_tile_no, data_cell_no,
+#' and data_tile_no for that lake. 
 combine_glm_output <- function(run_groups, lake_cell_tile_xwalk, outfile_template) {
   # set filename
   outfile <- sprintf(outfile_template, unique(run_groups$site_id), unique(run_groups$gcm))
@@ -46,15 +50,15 @@ combine_glm_output <- function(run_groups, lake_cell_tile_xwalk, outfile_templat
 
 #' @title Zip up output from GLM model runs
 #' @description function to zip up the feather files for each lake-gcm
-#' combo according to the tile_no associated with that lake
+#' combo according to the spatial_tile_no associated with that lake
 #' @param feather_groups a grouped version of the `p3_glm_uncalibrated_output_feathers`
-#' output tibble grouped by tile_no. The function maps over these groups.
-#' @param zipfile_template the template for the name of the
-#' final zipped file of feather files
+#' output tibble grouped by spatial_tile_no. The function maps over these groups.
+#' @param zipfile_template the template for the name of the final zipped file
+#' of feather files, which will be customized with the spatial_tile_no
 #' @return the name of the zipped file 
 zip_output_files <- function(feather_groups, zipfile_template) {
   files_to_zip <- feather_groups$export_fl
-  zipfile_out <- sprintf(zipfile_template, unique(feather_groups$tile_no))
+  zipfile_out <- sprintf(zipfile_template, unique(feather_groups$spatial_tile_no))
   # In order to use `zip`, you need to be in the same working directory as
   # the files you want to zip up.
   project_dir <- getwd()
