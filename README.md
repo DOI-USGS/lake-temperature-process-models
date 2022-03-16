@@ -4,7 +4,7 @@ This repository is for running uncalibrated GLM models of lake temperatures.
 -----------------
 ## Dependent files from [`lake-temperature-model-prep pipeline`](https://github.com/USGS-R/lake-temperature-model-prep)
 _Files that will eventually be transferred using GLOBUS:_
-  * Lake - GCM tile cell crosswalk: `'1_prep/in/lake_cell_tile_xwalk.csv'`
+  * Lake - GCM cell tile crosswalk: `'1_prep/in/lake_cell_tile_xwalk.csv'`
     * Created within [the `targets` sub-pipeline](https://github.com/USGS-R/lake-temperature-model-prep/blob/main/_targets.R#L194-L213) of the repo
   * List of lake-specific attributes for nml modification: `'1_prep/in/nml_list.rds'`
   * Munged GCM netCDF files (not yet brought in manually, see below)
