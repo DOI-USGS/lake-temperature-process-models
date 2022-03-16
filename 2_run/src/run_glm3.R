@@ -41,9 +41,9 @@ add_burn_in_out_to_meteo <- function(raw_meteo_fl, burn_in = 300, burn_out = 190
 }
 
 #' @title function to extract and write glm output following a model run
-#' @description Extract temperature and ice data from the model
-#' run and save to the export feather file. 
-#' From Jordan's GLM projection code: 
+#' @description Extract temperature, layers, evaporation, and ice data 
+#' from the model run and save to the export feather file. 
+#' Adapted from Jordan's GLM projection code: 
 #' https://github.com/jread-usgs/lake-temperature-process-models/blob/master/3_run/src/run_glm_utils.R#L89-L101
 #' @param nc_filepath the path for the netCDF output file for the simulation
 #' @param nml_obj the complete nml object for the model run
@@ -52,11 +52,23 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
   lake_depth <- glmtools::get_nml_value(nml_obj, arg_name = 'lake_depth')
   export_depths <- seq(0, lake_depth, by = 0.5)
   temp_data <- glmtools::get_temp(nc_filepath, reference = 'surface', z_out = export_depths) %>%
-    mutate(date = as.Date(lubridate::floor_date(DateTime, 'days'))) %>% select(-DateTime)
-  glmtools::get_var(nc_filepath, var_name = 'hice') %>%
-    dplyr::mutate(ice = hice > 0, date = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>% dplyr::select(-hice, -DateTime) %>%
-    dplyr::left_join(temp_data, ., by = 'date') %>%
-    select(time = date, everything()) %>%
+    mutate(time = as.Date(lubridate::floor_date(DateTime, 'days'))) %>% 
+    select(-DateTime)
+  layers_data <- glmtools::get_var(nc_filepath, 'NS') %>%
+    rename(n_layers = NS) %>%
+    mutate(time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
+    select(-DateTime)
+  evap_data <- glmtools::get_var(nc_filepath, 'evap') %>%
+    mutate(time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
+    select(-DateTime)
+  ice_data <- glmtools::get_var(nc_filepath, var_name = 'hice') %>%
+    mutate(ice = hice > 0, time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
+    select(-DateTime) 
+  all_results <- layers_data %>%
+    left_join(evap_data, ., by = 'time') %>%
+    left_join(ice_data, ., by = 'time') %>%
+    left_join(temp_data, ., by = 'time') %>%
+    select(time, everything()) %>%
     arrow::write_feather(export_fl)
 }
 
