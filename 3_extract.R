@@ -3,6 +3,9 @@ source('3_extract/src/process_glm_output.R')
 p3 <- list(
   # Use grouped target to combine glm output into feather files
   # Function will generate the output feather file for each lake-gcm combo
+  # across all three time periods, truncating the output to the valid dates 
+  # for each time period (exluding the burn-in and burn-out periods) and
+  # saving only the temperature predictions for each depth and ice flags
   tar_target(
     p3_glm_uncalibrated_output_feathers,
     combine_glm_output(p2_glm_uncalibrated_run_groups, 
