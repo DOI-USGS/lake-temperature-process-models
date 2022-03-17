@@ -19,8 +19,8 @@ p1 <- list(
                arrange(site_id)),
 
   # Define mapping variables
-  tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df$site_id),
-  tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df$cell_no)),
+  tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
+  tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
   
@@ -60,6 +60,7 @@ p1 <- list(
              munge_nmls(nml_list_rds = p1_nml_list_rds,
                         site_ids = p1_site_ids,
                         base_nml = p1_glm_template_nml),
-             packages = c('glmtools'))
+             packages = c('glmtools'),
+             iteration = 'list')
 )
 

@@ -11,7 +11,12 @@ adjust_depth_args_nml <- function(nml_args) {
     
     # &morphometry
     lake_name = site_id,
-    bsn_vals = length(H),
+    # for now, resample all hypso to 1-m intervals.
+    # returns new H,A vectors and bsn_vals
+    # should refine to only resample for lakes > a 
+    # certain depth, and return bsn_vals = length(H)
+    # for lakes shallower than that threshold depth
+    resample_H_A(H, A),
     
     # &init_profiles
     tibble(
@@ -25,7 +30,7 @@ adjust_depth_args_nml <- function(nml_args) {
 #' @decription Replace the NLDAS filename stored as 'meteo_fl'
 #' with 'NULL', remove used nml parameter 'site_id'
 #' @param nml_list_rds rds file of lake-specific nml parameters
-#' @param site_ids vector of lakes from lake_cell_xwalk
+#' @param site_ids vector of lakes from lake_cell_tile_xwalk
 #' @param base_nml glm3 nml template
 #' @return complete nml objects
 munge_nmls <- function(nml_list_rds, site_ids, base_nml) {
@@ -46,4 +51,28 @@ munge_nmls <- function(nml_list_rds, site_ids, base_nml) {
     })
   
   return(nml_objs)
+}
+
+#' @Title Resample incoming hypsography to 1-m intervals
+#' @decription Resample the H and A values to 1-meter intervals; calc bsn_vals
+#' @param H the vector of H (elevation) values from the lake-specific 
+#' nml parameters loaded in from the nml_list.rds from lake-temperature-model-prep
+#' @param A the vector of A (area) values from the lake-specific nml 
+#' parameters loaded in from the nml_list.rds from lake-temperature-model-prep
+#' @return a list containing H and A vectors and a bsn_vals scaler
+resample_H_A <- function(H, A) {
+  ha_df <- tibble(H = H,A = A) %>%
+    arrange(H)
+  
+  # Resample hypso to 1-meter intervals
+  # Add an additional row for the deepest (final) raw H value so we don’t 
+  # end up with with a lake shallower than the lake depth param. 
+  # Then remove duplicate rows if any exist, which they will if the
+  # final H value from the raw H vector is an integer
+  ha_df_resampled <- bind_rows(tibble(H=seq.int(floor(min(ha_df$H)), floor(max(ha_df$H))),
+                                      A=approx(ha_df$H, ha_df$A, xout=seq.int(floor(min(ha_df$H)), floor(max(ha_df$H))), rule=2)$y),
+                               tibble(A=approx(H, A, xout=max(ha_df$H), rule=2)$y, H=max(ha_df$H))) %>%
+    distinct()
+  
+  c(ha_df_resampled, bsn_vals = nrow(ha_df_resampled))
 }

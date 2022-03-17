@@ -6,15 +6,19 @@ p2 <- list(
   # put simulation directories in sub-directory for easy deletion
   tar_target(
     p2_glm_uncalibrated_runs,
-    run_glm3_model(
-      sim_dir = '2_run/tmp/simulations',
-      nml_objs = p1_nml_objects,
-      model_config = p1_model_config,
-      burn_in = 300,
-      burn_out = 190,
-      export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather'),
+    {
+      # check mapping to ensure is correct
+      tar_assert_identical(p1_model_config$site_id, p1_nml_objects$morphometry$lake_name, "p1_nml_object site id doesn't match p1_model_config site id")
+      run_glm3_model(
+        sim_dir = '2_run/tmp/simulations',
+        nml_obj = p1_nml_objects,
+        model_config = p1_model_config,
+        burn_in = 300,
+        burn_out = 190,
+        export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather')
+    },
     packages = c('retry','glmtools', 'GLM3r'),
-    pattern = map(p1_model_config)),
+    pattern = map(p1_model_config, cross(p1_nml_objects, p1_gcm_names, p1_gcm_dates))),
   
   # Group model runs by lake id and gcm
   # Discard the glm diagnostics so they don't trigger rebuilds
