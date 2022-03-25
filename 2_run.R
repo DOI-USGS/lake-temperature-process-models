@@ -20,6 +20,7 @@ p2 <- list(
     packages = c('retry','glmtools', 'GLM3r'),
     pattern = map(p1_model_config, cross(p1_nml_objects, p1_gcm_names, p1_gcm_dates))),
   
+  # For bundling of results by lake and by GCM in 3_extract
   # Group model runs by lake id and gcm
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
@@ -30,6 +31,22 @@ p2 <- list(
     p2_glm_uncalibrated_runs %>%
       select(site_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash, glm_success) %>%
       group_by(site_id, gcm) %>% 
+      filter(all(glm_success)) %>%
+      tar_group(),
+    iteration = "group"
+  ),
+  
+  # For bundling of results by lake in 4_visualize
+  # Group model runs by lake id only
+  # Discard the glm diagnostics so they don't trigger rebuilds
+  # even when the export_fl_hash is unchanged
+  # Filter to groups where all model runs were successful 
+  # (if any failed, the group is filtered out)
+  tar_target(
+    p2_glm_uncalibrated_lake_groups,
+    p2_glm_uncalibrated_runs %>%
+      select(site_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash, glm_success) %>%
+      group_by(site_id) %>% 
       filter(all(glm_success)) %>%
       tar_group(),
     iteration = "group"
