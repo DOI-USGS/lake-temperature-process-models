@@ -63,11 +63,11 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
     select(-DateTime)
   ice_data <- glmtools::get_var(nc_filepath, var_name = 'hice') %>%
     mutate(ice = hice > 0, time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
-    select(-DateTime) 
-  all_results <- layers_data %>%
-    left_join(evap_data, ., by = 'time') %>%
-    left_join(ice_data, ., by = 'time') %>%
-    left_join(temp_data, ., by = 'time') %>%
+    select(-DateTime)
+  all_results <- temp_data %>%
+    left_join(ice_data, by = 'time') %>%
+    left_join(evap_data, by = 'time') %>%
+    left_join(layers_data, by = 'time') %>%
     select(time, everything()) %>%
     arrow::write_feather(export_fl)
 }
