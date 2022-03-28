@@ -98,7 +98,7 @@ plot_temp_violin_months <- function(run_groups, outfile) {
   glm_preds <- glm_preds %>%
     filter(month %% 2 == 0) %>% 
     group_by(site_id, date, month, period, depth_class, depth) %>% 
-    summarize(mean_temperature=mean(temperature))
+    summarize(mean_temperature=mean(temperature, na.rm=TRUE))
   
   # Build plot
   violin_plot <- ggplot(glm_preds) + 
@@ -138,7 +138,7 @@ plot_20yr_gcm_preds_ice <- function(run_group, outfile_template) {
   # Get mean of GLM preds across all 6 GCMs
   glm_mean <- glm_plot %>%
     group_by(depth, doy, period) %>%
-    summarize(mean_temp = mean(temperature))
+    summarize(mean_temp = mean(temperature, na.rm=TRUE))
   
   # Build plot  
   doy_plot <- ggplot()+
@@ -147,7 +147,7 @@ plot_20yr_gcm_preds_ice <- function(run_group, outfile_template) {
     geom_point(data = glm_preds_ice, aes(x=doy, y=temperature, color='c_gcm_glm_ice'), size=0.1, alpha=0.05, pch=16) +
     scale_color_manual(values = c("cornflowerblue","midnightblue", "maroon4"), labels = c('GLM preds','mean of GLM preds', 'GLM ice'), guide= guide_legend(override.aes = list(alpha = c(1,1,1), linetype = c('solid','solid','blank'), shape=c(NA,NA,16), size=c(0.5,0.5,0.5)))) +
     facet_grid(depth ~ period, labeller=labeller(.cols=label_both)) +
-    labs(title= paste(sprintf("%s", run_group$lake_id), sprintf('GCM: %s', run_group$gcm), sep='\n'),  y="Temperature (°C)") +
+    labs(title= paste(sprintf("%s", run_group$lake_id), sprintf('GCM: %s', run_group$gcm), sep='\n'),  y="Temperature (\u00b0C)") +
     theme_bw() +
     theme(
       panel.border = element_blank(),
@@ -202,7 +202,7 @@ plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
   # Get mean of GLM predictions across all 6 GCMs
   glm_mean <- glm_plot %>%
     group_by(depth, doy, period) %>%
-    summarize(mean_temp = mean(temperature))
+    summarize(mean_temp = mean(temperature, na.rm=TRUE))
   
   # Build plot
   doy_plot <- ggplot()+
@@ -212,7 +212,7 @@ plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
     geom_point(data = glm_preds_ice_mean, aes(x=doy, y=mean_temp, color='d_gcm_glm_ice_mean'), size=0.1, alpha=0.3, pch=16) +
     scale_color_manual(values = c("cornflowerblue","midnightblue", "plum2","maroon4"), labels = c('GLM preds','mean of GLM preds', 'any GCM ice', 'all GCMs ice'), guide= guide_legend(override.aes = list(alpha = c(1,1,1,1), linetype = c('solid','solid','blank','blank'), shape=c(NA,NA,16,16), size=c(0.5,0.5,0.5,0.5)))) +
     facet_grid(depth ~ period, labeller=labeller(.cols=label_both)) +
-    labs(title= paste(sprintf("%s", unique(lake_group$site_id)), 'GCM: all', sep='\n'),  y="Temperature (°C)") +
+    labs(title= paste(sprintf("%s", unique(lake_group$site_id)), 'GCM: all', sep='\n'),  y="Temperature (\u00b0C)") +
     theme_bw() +
     theme(
       strip.text = element_text(size=14),
@@ -249,7 +249,7 @@ plot_20yr_average_profiles <- function(lake_group, plot_month_days, outfile_temp
   # get mean of GLM predictions for each DOY, across all 6 GCMs
   glm_mean <- glm_plot %>%
     group_by(depth, doy, period) %>%
-    summarize(mean_temp = mean(temperature)) %>%
+    summarize(mean_temp = mean(temperature, na.rm=TRUE)) %>%
     filter(!is.na(mean_temp))
 
   # build plot  
@@ -261,8 +261,8 @@ plot_20yr_average_profiles <- function(lake_group, plot_month_days, outfile_temp
     facet_grid(doy ~ period, labeller=labeller(.cols=label_both)) +
     labs(title= paste(sprintf("%s -- GLM and mean GLM profiles", unique(lake_group$site_id)), 
                       "\n GCM: all", 
-                      sprintf("\n Dates: %s", paste('DOY', yday(plot_dates), ':' , plot_month_days, collapse=', '))), 
-         x="Temperature (°C)", 
+                      sprintf("\n Dates: %s", paste(paste0('DOY ', yday(plot_dates), ':'), plot_month_days, collapse=', '))), 
+         x="Temperature (\u00b0C)", 
          y="Depth (m)") +
     theme_bw() +
     theme(
