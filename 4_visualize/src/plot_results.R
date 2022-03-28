@@ -79,7 +79,7 @@ plot_temp_violin_gcms <- function(run_groups, outfile) {
   
   # Build plot
   violin_plot <- ggplot(glm_preds) + 
-    geom_violin(aes(x=depth_class, y=temperature,color=depth_class)) + 
+    geom_violin(aes(x=depth_class, y=temperature,color=depth_class), trim=FALSE) + 
     facet_grid(period~gcm) +
     labs(title = paste('Distribution of temperatures across depth classes, by gcm and time period', 
                        sprintf('number of lakes: %s', length(unique(glm_preds$site_id))), sep='\n'))
@@ -102,7 +102,7 @@ plot_temp_violin_months <- function(run_groups, outfile) {
   
   # Build plot
   violin_plot <- ggplot(glm_preds) + 
-    geom_violin(aes(x=depth_class, y=mean_temperature,color=depth_class)) + 
+    geom_violin(aes(x=depth_class, y=mean_temperature,color=depth_class), trim=FALSE) + 
     facet_grid(period~month) +
     labs(title = paste('Distribution of temperatures across depth classes, by (even) months and time period', 
                        sprintf('number of lakes: %s', length(unique(glm_preds$site_id))), sep='\n'))
