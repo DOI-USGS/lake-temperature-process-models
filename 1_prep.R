@@ -3,6 +3,10 @@ source('1_prep/src/build_model_config.R')
 source('1_prep/src/munge_nmls.R')
 
 p1 <- list(
+  # Define mapping variables
+  tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
+  tar_target(p1_gcm_dates, c('1981_2000', '2040_2059', '2080_2099')),
+  
   ### Pull in files from lake-temperature-model-prep
   # TODO - transfer to Denali using globus
   # list of lake-specific attributes for nml modification
@@ -19,20 +23,21 @@ p1 <- list(
                arrange(site_id)),
   # NetCDF files with munged GCM driver data (one per GCM)
   # files copied from lake-temperature-model-prep repo
-  tar_target(p1_gcm_ncs, {
-    filename <- sprintf('1_prep/in/GCM_%s.nc', p1_gcm_names)
-    return(filename)
-  }, format = 'file', pattern = map(p1_gcm_names)),
+  tar_target(p1_gcm_ncs, 
+             {
+               filename <- sprintf('1_prep/in/GCM_%s.nc', p1_gcm_names)
+               return(filename)
+               }, 
+             format = 'file',
+             pattern = map(p1_gcm_names)),
 
-  # Define mapping variables
+  # Pull vectors of site ids and data cell numbers
   tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
-  tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
-  tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
-  
-  # Generate GCM/time-period/cell-specific feather files
+
+  # Generate GCM/time-period/tile-specific feather files
   tar_target(p1_meteo_feathers,
-             munge_nc_files(p1_gcm_ncs, p1_gcm_names, p1_cell_nos,
+             munge_nc_files(p1_gcm_ncs, p1_gcm_names, p1_lake_cell_tile_xwalk_df,
                             outfile_template = '1_prep/tmp/GCM_%s_%s_%s.feather'),
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
