@@ -197,12 +197,14 @@ plot_temp_violin_months <- function(run_groups, outfile) {
 #' by DOY, as well as the average GLM prediction for each DOY in each 
 #' 20-year time period. Also plot whether or not the model predicted ice 
 #' on a given DOY. The output plot is faceted by period and by depth class
-#' @param run_group a single group from the `p2_glm_uncalibrated_run_groups`
-#' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
-#' to the site_id, gcm, time_period, raw_meteo_fl, export_fl, and 
-#' export_fl_hash columns and grouped by site_id and gcm. Then filtered to 
-#' only groups for which glm_success==TRUE for all runs in that group. 
-#' The function maps over these groups.
+#' @param run_group a single group from `p4_subset_run_groups`, which
+#' is a filtered version of the `p2_glm_uncalibrated_run_groups` tibble, 
+#' which includes columns for site_id, gcm, time_period, raw_meteo_fl, 
+#' export_fl, and export_fl_hash for *fully successful* runs. To limit the 
+#' number of lake-specific plots that are generated, the `p4_subset_run_groups`
+#' was created by filtering `p2_glm_uncalibrated_run_groups` to site ids 
+#' within the manually specified `p4_plot_site_ids` vector, retaining the 
+#' grouping by site_id and gcm. The function maps over these groups.
 #' @param outfile_template The template filepath for the exported png, which
 #' is customized with the site_id and the name of the GCM for which predictions
 #' are plotted
@@ -270,12 +272,14 @@ plot_20yr_gcm_preds_ice <- function(run_group, outfile_template) {
 #' 20-year time period. Also plot whether or not the model predicted ice 
 #' on a given DOY for any GCM or for all 6 GCMs. The output plot is 
 #' faceted by period and by depth class
-#' @param lake_group a single group from the `p2_glm_uncalibrated_lake_groups`
-#' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
-#' to the site_id, gcm, time_period, raw_meteo_fl, export_fl, and 
-#' export_fl_hash columns and grouped by site_id. Then filtered to 
-#' only groups for which glm_success==TRUE for all runs in that group. 
-#' The function maps over these groups.
+#' @param lake_group a single group from `p4_subset_lake_groups`, which
+#' is a filtered version of the `p2_glm_uncalibrated_lake_groups` tibble, 
+#' which includes columns for site_id, gcm, time_period, raw_meteo_fl, 
+#' export_fl, and export_fl_hash for *fully successful* runs. To limit the 
+#' number of lake-specific plots that are generated, the `p4_subset_lake_groups`
+#' was created by filtering `p2_glm_uncalibrated_lake_groups` to site ids 
+#' within the manually specified `p4_plot_site_ids` vector, retaining the 
+#' grouping by site_id. The function maps over these groups.
 #' @param outfile_template The template filepath for the exported png, which
 #' is customized with the site_id
 #' @return The filepath of the exported png 
@@ -349,12 +353,14 @@ plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
 #' plot temperature profiles for 4 specified DOY in each year, 
 #' as well as the average GLM profile for each of the 4 DOY within each 
 #' 20-year time period. The output plot is faceted by DOY and by period
-#' @param lake_group a single group from the `p2_glm_uncalibrated_lake_groups`
-#' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
-#' to the site_id, gcm, time_period, raw_meteo_fl, export_fl, and 
-#' export_fl_hash columns and grouped by site_id. Then filtered to 
-#' only groups for which glm_success==TRUE for all runs in that group. 
-#' The function maps over these groups.
+#' @param lake_group a single group from `p4_subset_lake_groups`, which
+#' is a filtered version of the `p2_glm_uncalibrated_lake_groups` tibble, 
+#' which includes columns for site_id, gcm, time_period, raw_meteo_fl, 
+#' export_fl, and export_fl_hash for *fully successful* runs. To limit the 
+#' number of lake-specific plots that are generated, the `p4_subset_lake_groups`
+#' was created by filtering `p2_glm_uncalibrated_lake_groups` to site ids 
+#' within the manually specified `p4_plot_site_ids` vector, retaining the 
+#' grouping by site_id. The function maps over these groups.
 #' @param plot_month_days The month-day combinations for which to plot
 #' predicted temperature profiles
 #' @param outfile_template The template filepath for the exported png, which
