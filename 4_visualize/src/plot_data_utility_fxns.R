@@ -3,6 +3,7 @@
 #' for all 3 simulation periods based on the input meteo file and export file 
 #' vectors provided - may be pulling predictions for a single lake-gcm combo, 
 #' or predictions for all GCMS for a single lake.
+#' @param site_id The id for the current lake
 #' @param site_meteo_files the filepaths for the raw meteo data. The meteo data
 #' is used to determine the correct begin and end dates for the predictions and
 #' exclude predictions for any burn-in/burn-out periods.
@@ -16,7 +17,7 @@
 #' @return A munged dataframe of GLM predictions that includes columns for date, month, 
 #' year, DOY, decade, period, gcm, ice, hice (ice thickness), evap (evaporation),
 #' n_layers (number of simulated layers), and temperature predictions at 0.5-meter intervals
-get_site_preds <- function(site_meteo_files, site_export_files, run_gcm_list) {
+get_site_preds <- function(site_id, site_meteo_files, site_export_files, run_gcm_list) {
   site_preds <- purrr::pmap_df(list(site_meteo_files, site_export_files, run_gcm_list), function(raw_meteo_fl, export_file, gcm) {
     # Define time period begin and end dates from raw meteo_fl
     meteo_data <- arrow::read_feather(raw_meteo_fl, col_select = "time")
@@ -27,7 +28,7 @@ get_site_preds <- function(site_meteo_files, site_export_files, run_gcm_list) {
       filter(time >= as.Date(begin) & time <= as.Date(end)) %>%
       mutate(gcm = gcm)
   }) %>%
-    mutate(date = as.Date(time), .before=1) %>%
+    mutate(site_id = site_id, date = as.Date(time), .before=1) %>%
     select(-time) %>%
     mutate("month" = month(date),
            "year"= year(date), 
@@ -36,7 +37,7 @@ get_site_preds <- function(site_meteo_files, site_export_files, run_gcm_list) {
            "period" = sprintf('%s - %s', year - (year %% 20), (year - (year %% 20)) + 20),
            .after=date) %>%
     filter(!(year == 2000)) %>% #Predictions for this year are incomplete and fall in a different 20-year period, so exclude
-    select(date, month, year, doy, decade, period, gcm, ice, hice, evap, n_layers, everything()) # Place the temperature prediction columns last
+    select(site_id, date, month, year, doy, decade, period, gcm, ice, hice, evap, n_layers, everything()) # Place the temperature prediction columns last
   
   return(site_preds)
 }
@@ -107,10 +108,9 @@ munge_long <- function(input_wide) {
 #' @return A named list of the surface, middle, and bottom depths to be used
 #' to plot data for a given lake.
 get_plotting_depths <- function(predictions_long) {
-  n_lambda <- 1
   depth_scores <- predictions_long %>% group_by(depth) %>% tally() %>%
     mutate(
-      n_score = n_lambda * n/max(n),
+      n_score = n/max(n),
       surface_score = n_score - abs(depth - 0),
       middle_score = n_score - abs(depth - max(depth)/3),
       bottom_score = n_score - abs(depth - max(depth))

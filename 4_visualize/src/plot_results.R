@@ -104,7 +104,7 @@ plot_20yr_gcm_preds_ice <- function(run_group, outfile_template) {
   glm_plot <- glm_preds_long %>%
     filter(depth %in% plot_depths)
   
-  # Get mean of GLM preds across all 6 GCMs
+  # Get mean of GLM preds across all years
   glm_mean <- glm_plot %>%
     group_by(depth, doy, period) %>%
     summarize(mean_temp = mean(temperature, na.rm=TRUE))
@@ -155,13 +155,8 @@ plot_20yr_gcm_preds_ice <- function(run_group, outfile_template) {
 #' @param outfile_template The template filepath for the exported png, which
 #' is customized with the site_id
 #' @return The filepath of the exported png 
-plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
-  # Get glm preds for the current lake (wide format)
-  glm_preds <- get_site_preds(lake_group$raw_meteo_fl, lake_group$export_fl, lake_group$gcm)
+plot_20yr_average_preds_ice <- function(site_id, glm_preds, glm_preds_long, glm_mean_long, outfile_template) {
 
-  # Munge them to long format
-  glm_preds_long <- munge_long(glm_preds)
-  
   # Pull out ice predictions, and create offset temperature for plotting
   glm_preds_ice <- glm_preds %>%
     select(gcm, year, doy, period, date, ice, temp_0) %>%
@@ -184,23 +179,25 @@ plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
   plot_depths <- get_plotting_depths(glm_preds_long)
 
   # subset to plotting depths
-  glm_plot <- glm_preds_long %>%
+  glm_preds_plot <- glm_preds_long %>%
+    filter(depth %in% plot_depths)
+  glm_mean_plot <- glm_mean_long %>%
     filter(depth %in% plot_depths)
   
-  # Get mean of GLM predictions across all 6 GCMs
-  glm_mean <- glm_plot %>%
-    group_by(depth, doy, period) %>%
-    summarize(mean_temp = mean(temperature, na.rm=TRUE))
+  # # Get mean of GLM predictions across all years and all 6 GCMs
+  # glm_mean <- glm_plot %>%
+  #   group_by(depth, doy, period) %>%
+  #   summarize(mean_temp = mean(temperature, na.rm=TRUE))
   
   # Build plot
   doy_plot <- ggplot()+
-    geom_line(data=glm_plot, aes(x=doy, y=temperature, color='a_gcm_glm'), size=0.5, alpha=0.2, linetype='solid') +
-    geom_line(data=glm_mean, aes(x=doy, y=mean_temp, color="b_gcm_glm_mean"), size=0.5, alpha=1, linetype='solid') +
+    geom_line(data=glm_preds_plot, aes(x=doy, y=temperature, color='a_gcm_glm'), size=0.5, alpha=0.2, linetype='solid') +
+    geom_line(data=glm_mean_plot, aes(x=doy, y=mean_temp, color="b_gcm_glm_mean"), size=0.5, alpha=1, linetype='solid') +
     geom_point(data = glm_preds_ice, aes(x=doy, y=temperature, color='c_gcm_glm_ice'), size=0.1, alpha=0.2, pch=16) +
     geom_point(data = glm_preds_ice_mean, aes(x=doy, y=mean_temp, color='d_gcm_glm_ice_mean'), size=0.1, alpha=0.3, pch=16) +
     scale_color_manual(values = c("cornflowerblue","midnightblue", "plum2","maroon4"), labels = c('GLM preds','mean of GLM preds', 'any GCM ice', 'all GCMs ice'), guide= guide_legend(override.aes = list(alpha = c(1,1,1,1), linetype = c('solid','solid','blank','blank'), shape=c(NA,NA,16,16), size=c(0.5,0.5,0.5,0.5)))) +
     facet_grid(depth ~ period, labeller=labeller(.cols=label_both)) +
-    labs(title= paste(sprintf("%s", unique(lake_group$site_id)), 'GCM: all', sep='\n'),  y="Temperature (\u00b0C)") +
+    labs(title= paste(sprintf("%s", site_id), 'GCM: all', sep='\n'),  y="Temperature (\u00b0C)") +
     theme_bw() +
     theme(
       strip.text = element_text(size=14),
@@ -214,7 +211,7 @@ plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
     )
   
   # Save plot
-  outfile <- sprintf(outfile_template, unique(lake_group$site_id))
+  outfile <- sprintf(outfile_template, site_id)
   ggsave(filename=outfile, plot=doy_plot, dpi=300, width=10, height=6)
   return(outfile)
 }
@@ -225,48 +222,36 @@ plot_20yr_average_preds_ice <- function(lake_group, outfile_template) {
 #' plot temperature profiles for 4 specified DOY in each year, 
 #' as well as the average GLM profile for each of the 4 DOY within each 
 #' 20-year time period. The output plot is faceted by DOY and by period
-#' @param lake_group a single group from `p4_subset_lake_groups`, which
-#' is a filtered version of the `p2_glm_uncalibrated_lake_groups` tibble, 
-#' which includes columns for site_id, gcm, time_period, raw_meteo_fl, 
-#' export_fl, and export_fl_hash for *fully successful* runs. To limit the 
-#' number of lake-specific plots that are generated, the `p4_subset_lake_groups`
-#' was created by filtering `p2_glm_uncalibrated_lake_groups` to site ids 
-#' within the manually specified `p4_plot_site_ids` vector, retaining the 
-#' grouping by site_id. The function maps over these groups.
+#' @param site_id The id for the current lake
+#' @param glm_preds_long Long-formatted temperature predictions for the
+#' current lake, for all GCMs (6 values for each depth on each calendar
+#' date)
+#' @param glm_mean_long Long-formatted mean temperature predictions for
+#' each DOY across all years and all GCMs (single value for each depth 
+#' on each doy in each time period)
 #' @param plot_month_days The month-day combinations for which to plot
 #' predicted temperature profiles
 #' @param outfile_template The template filepath for the exported png, which
 #' is customized with the site_id
 #' @return The filepath of the exported png 
-plot_20yr_average_profiles <- function(lake_group, plot_month_days, outfile_template) {
-  # get glm preds for the current lake (wide format)
-  glm_preds <- get_site_preds(lake_group$raw_meteo_fl, lake_group$export_fl, lake_group$gcm)
-  
-  # munge them to long format
-  glm_preds_long <- munge_long(glm_preds)
-  
+plot_20yr_average_profiles <- function(site_id, glm_preds_long, glm_mean_long, plot_month_days, outfile_template) {
   # modify the glm uncalibrated predictions dates
   plot_dates <- paste0('2021-', plot_month_days) #Assign random year to get DOY
   
   # subset predictions to selected DOYs
-  glm_plot <- glm_preds_long %>%
-    filter(doy %in% yday(plot_dates)) %>%
-    filter(!(year == 2000))
-  
-  # get mean of GLM predictions for each DOY, across all 6 GCMs
-  glm_mean <- glm_plot %>%
-    group_by(depth, doy, period) %>%
-    summarize(mean_temp = mean(temperature, na.rm=TRUE)) %>%
-    filter(!is.na(mean_temp))
+  glm_preds_plot <- glm_preds_long %>%
+    filter(doy %in% yday(plot_dates))
+  glm_mean_plot <- glm_mean_long %>%
+    filter(doy %in% yday(plot_dates))
 
   # build plot  
   doy_plot <- ggplot()+
-    geom_point(data= glm_plot, aes(x=temperature, y=depth, color='a_gcm_glm'), size=0.5, alpha=0.17) + #line=gcm, 
-    geom_point(data=glm_mean, aes(x=mean_temp, y=depth, color="b_gcm_glm_mean"), size=1, alpha=1) +
-    scale_y_reverse(lim=c(max(glm_mean$depth),0)) +
+    geom_point(data= glm_preds_plot, aes(x=temperature, y=depth, color='a_gcm_glm'), size=0.5, alpha=0.17) + #line=gcm, 
+    geom_point(data=glm_mean_plot, aes(x=mean_temp, y=depth, color="b_gcm_glm_mean"), size=1, alpha=1) +
+    scale_y_reverse(lim=c(max(glm_mean_plot$depth),0)) +
     scale_color_manual(values = c("cornflowerblue","midnightblue"), labels = c('GLM preds','mean of GLM preds'), guide= guide_legend(override.aes = list(alpha = c(0.17,1), size=c(0.5,1)))) +
     facet_grid(doy ~ period, labeller=labeller(.cols=label_both)) +
-    labs(title= paste(sprintf("%s -- GLM and mean GLM profiles", unique(lake_group$site_id)), 
+    labs(title= paste(sprintf("%s -- GLM and mean GLM profiles", site_id), 
                       "\n GCM: all", 
                       sprintf("\n Dates: %s", paste(paste0('DOY ', yday(plot_dates), ':'), plot_month_days, collapse=', '))), 
          x="Temperature (\u00b0C)", 
@@ -284,7 +269,7 @@ plot_20yr_average_profiles <- function(lake_group, plot_month_days, outfile_temp
     )
 
   # save plot
-  outfile <- sprintf(outfile_template, unique(lake_group$site_id))
+  outfile <- sprintf(outfile_template, site_id)
   ggsave(filename=outfile, plot=doy_plot, dpi=300, width=10, height=6)
   return(outfile)
 }

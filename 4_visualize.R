@@ -4,7 +4,9 @@ source('4_visualize/src/plot_data_utility_fxns.R')
 p4 <- list(
   ### Lake-specific plots
   tar_target(p4_plot_site_ids,
-             c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667')),
+             p1_lake_cell_tile_xwalk_df %>%
+               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667')) %>%
+               pull(site_id)),
   
   # Plots for each lake-gcm combo
   # Subset p2_glm_uncalibrated_run_groups to selected plotting site_ids
@@ -27,20 +29,45 @@ p4 <- list(
                filter(site_id %in% p4_plot_site_ids),
              iteration = 'group'),
   
+  # Pull glm preds for all 6 GCMs for each of the plot site ids
+  tar_target(p4_lake_glm_preds,
+             get_site_preds(unique(p4_subset_lake_groups$site_id),
+                            p4_subset_lake_groups$raw_meteo_fl, 
+                            p4_subset_lake_groups$export_fl, 
+                            p4_subset_lake_groups$gcm),
+             pattern = map(p4_subset_lake_groups)),
+  
+  # Munge the glm preds to long format
+  tar_target(p4_lake_glm_preds_long,
+             munge_long(p4_lake_glm_preds),
+             pattern = map(p4_lake_glm_preds)),
+  
+  tar_target(p4_lake_glm_mean_long,
+             p4_lake_glm_preds_long %>%
+               group_by(site_id, depth, doy, period) %>%
+               summarize(mean_temp = mean(temperature, na.rm=TRUE)) %>%
+               filter(!is.na(mean_temp)),
+             pattern = map(p4_lake_glm_preds_long)),
+  
   tar_target(
     p4_20yr_average_preds_ice,
-    plot_20yr_average_preds_ice(p4_subset_lake_groups,
+    plot_20yr_average_preds_ice(p4_plot_site_ids,
+                                p4_lake_glm_preds,
+                                p4_lake_glm_preds_long,
+                                p4_lake_glm_mean_long,
                                 outfile_template <- '4_Visualize/out/Site_20yr_preds_ice_%s.png'),
-    pattern = map(p4_subset_lake_groups),
+    pattern = map(p4_plot_site_ids, p4_lake_glm_preds, p4_lake_glm_preds_long, p4_lake_glm_mean_long),
     format = 'file'
   ),
   
   tar_target(
     p4_20yr_average_profiles,
-    plot_20yr_average_profiles(p4_subset_lake_groups,
+    plot_20yr_average_profiles(p4_plot_site_ids,
+                               p4_lake_glm_preds_long,
+                               p4_lake_glm_mean_long,
                                plot_month_days = c('02-15','05-15','08-15','11-15'),
                                outfile_template <- '4_Visualize/out/Site_20yr_profiles_%s.png'),
-    pattern = map(p4_subset_lake_groups),
+    pattern = map(p4_plot_site_ids, p4_lake_glm_preds_long, p4_lake_glm_mean_long),
     format = 'file'
   ),
   
