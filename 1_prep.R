@@ -35,9 +35,9 @@ p1 <- list(
   tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
-  # Generate GCM/time-period/tile-specific feather files
+  # Generate GCM/time-period/cell-specific feather files
   tar_target(p1_meteo_feathers,
-             munge_nc_files(p1_gcm_ncs, p1_gcm_names, p1_lake_cell_tile_xwalk_df,
+             munge_nc_files(p1_gcm_ncs, p1_gcm_names, p1_cell_nos,
                             outfile_template = '1_prep/tmp/GCM_%s_%s_%s.feather'),
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
