@@ -83,7 +83,7 @@ get_surface_middle_bottom_preds <- function(run_groups) {
 
 #' @title Munge GLM predictions from wide to long format
 #' @description pivots wide-format GLM predictions (with columns like
-#' 'temp_0', 'temp_0.5', etc.) to wide format, with a column for 'depth'
+#' 'temp_0', 'temp_0.5', etc.) to long format, with a column for 'depth'
 #' and a column for 'temperature'
 #' @param input_wide The wide-formatted input data
 #' @return a munged dataframe of GLM predictions that includes all of 
@@ -91,7 +91,7 @@ get_surface_middle_bottom_preds <- function(run_groups) {
 #' which are instead reduced to two columns: 'depth' and 'temperature'
 munge_long <- function(input_wide) {
   input_long <- input_wide %>%
-    pivot_longer(temp_0:colnames(input_wide)[ncol(input_wide)], names_to="depth", values_to="temperature") %>%
+    pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
     mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
     arrange(date, depth)
 }
