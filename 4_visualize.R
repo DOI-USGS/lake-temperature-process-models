@@ -1,4 +1,5 @@
 source('4_visualize/src/plot_results.R')
+source('4_visualize/src/plot_data_utility_fxns.R')
 
 p4 <- list(
   ### Lake-specific plots
