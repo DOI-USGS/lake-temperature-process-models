@@ -1,3 +1,21 @@
+#' @title Assign the correct time period string to the current date
+#' @description Take a date and return the appropriate time period
+#' string. Currently assumes that the time periods are one of 
+#' "1981_2000", "2040_2059", or "2080_2099". Could be improved later
+#' to handle others.
+#' @param time vector of `Date` class values
+#' @param gcm_time_periods vector of the character strings representing 
+#' available time periods for the data. One of "1981_2000", "2040_2059", 
+#' or "2080_2099"
+#' @return vector of the same length as `time` with the time period strings
+date_to_time_period <- function(time, gcm_time_periods) {
+  dplyr::case_when(
+    time <= as.Date("2010-01-01") ~ gcm_time_periods[1],
+    time <= as.Date("2070-01-01") ~ gcm_time_periods[2],
+    TRUE ~ gcm_time_periods[3]
+  )
+}
+
 #' @title Add burn-in and burn-out to raw meteo data for each cell
 #' @description function to add burn-in and burn-out to the raw meteo
 #' data by mirroring the data. From Jordan's GLM projection code: 
@@ -40,7 +58,7 @@ add_burn_in_out_to_meteo <- function(meteo_data, burn_in = 300, burn_out = 190){
   return(meteo_data)
 }
 
-#' @title Split each GCM netCDF into csv files specific to tiles and time periods
+#' @title Split each GCM netCDF into csv files specific to cells and time periods
 #' @decription Create a csv file with driver data for the current gcm, for
 #' each cell, for each time period
 #' @param gcm_nc filename of a GCM netCDF file
@@ -78,10 +96,7 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in
       # Once all variables have been compiled for each cell,
       # Add a column for time and determine the time period for each row
       mutate(time = nc_dates,
-             time_period = case_when(
-               time <= as.Date("2010-01-01") ~ gcm_time_periods[1],
-               time <= as.Date("2070-01-01") ~ gcm_time_periods[2],
-               TRUE ~ gcm_time_periods[3])
+             time_period = date_to_time_period(time, gcm_time_periods)
              ) %>%
       # Reorder the columns to match the standard order
       select(time_period, time, Shortwave, Longwave, AirTemp, RelHum, WindSpeed, Rain, Snow) %>%
@@ -94,7 +109,7 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in
         meteo_w_burn_in_out <- add_burn_in_out_to_meteo(.x)
         # then write the data for the current cell to a csv file
         outfile <- sprintf(outfile_template, gcm_name, time_period, cell_no)
-        fwrite(setDT(meteo_w_burn_in_out), outfile)
+        fwrite(meteo_w_burn_in_out, outfile)
         return(outfile)
       })
   }) %>% unlist()
@@ -104,7 +119,7 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in
 
 #' @title Munge GCM dates
 #' @description Function to determine the start and end dates of each
-#' GCM time period and document the date when burn-in stars and the date
+#' GCM time period and document the date when burn-in starts and the date
 #' when burn-out ends
 #' @param gcm_nc filenames of the GCM netCDF files
 #' @param gcm_time_periods - the three GCM time periods, defined by their 
@@ -125,10 +140,7 @@ munge_gcm_dates <- function(gcm_time_periods, gcm_ncs, burn_in, burn_out) {
   
   nc_dates <- tibble(
     time = lubridate::as_date(nc$time),
-    time_period = case_when(
-      time <= as.Date("2010-01-01") ~ gcm_time_periods[1],
-      time <= as.Date("2070-01-01") ~ gcm_time_periods[2],
-      TRUE ~ gcm_time_periods[3])
+    time_period = date_to_time_period(time, gcm_time_periods)
     ) %>%
     group_by(time_period) %>%
     summarize(gcm_start_date = min(time), gcm_end_date = max(time)) %>%

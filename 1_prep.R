@@ -40,8 +40,6 @@ p1 <- list(
   tar_target(p1_burn_out, 190),
   # Pull out start and end dates of raw meteo data
   # and note start of burn-in and end of burn-out
-  # TODO: won't catch when requested burn in is longer than
-  # meteo and therefore isn't added in add_burn_in_out_to_meteo()
   tar_target(p1_gcm_dates,
              munge_gcm_dates(p1_gcm_time_periods, 
                             p1_gcm_ncs,
