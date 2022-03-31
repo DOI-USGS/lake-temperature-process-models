@@ -5,7 +5,7 @@ source('1_prep/src/munge_nmls.R')
 p1 <- list(
   # Define mapping variables
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
-  tar_target(p1_gcm_dates, c('1981_2000', '2040_2059', '2080_2099')),
+  tar_target(p1_gcm_time_periods, c('1981_2000', '2040_2059', '2080_2099')),
   
   ### Pull in files from lake-temperature-model-prep
   # TODO - transfer to Denali using globus
@@ -35,16 +35,33 @@ p1 <- list(
   tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
-  # Generate GCM/time-period/cell-specific feather files
-  tar_target(p1_meteo_feathers,
-             munge_nc_files(p1_gcm_ncs, p1_gcm_names, p1_cell_nos,
-                            outfile_template = '1_prep/tmp/GCM_%s_%s_%s.feather'),
+  # Specify length of desired burn-in and burn-out periods, in days
+  tar_target(p1_burn_in, 300),
+  tar_target(p1_burn_out, 190),
+  # Pull out start and end dates of raw meteo data
+  # and note start of burn-in and end of burn-out
+  # TODO: won't catch when requested burn in is longer than
+  # meteo and therefore isn't added in add_burn_in_out_to_meteo()
+  tar_target(p1_gcm_dates,
+             munge_gcm_dates(p1_gcm_time_periods, 
+                            p1_gcm_ncs,
+                            burn_in = p1_burn_in,
+                            burn_out = p1_burn_out)),
+  # Generate GCM/time-period/cell-specific csv files
+  tar_target(p1_meteo_csvs,
+             munge_nc_files(p1_gcm_ncs, 
+                            p1_gcm_names, 
+                            p1_cell_nos,
+                            p1_gcm_time_periods,
+                            burn_in = p1_burn_in,
+                            burn_out = p1_burn_out,
+                            outfile_template = '1_prep/out/GCM_%s_%s_%s.csv'),
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
-  
+
   # build model config
   tar_target(p1_model_config,
-             build_model_config(p1_meteo_feathers, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
+             build_model_config(p1_meteo_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
   
   # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes
