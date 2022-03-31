@@ -13,8 +13,6 @@ p2 <- list(
         sim_dir = '2_run/tmp/simulations',
         nml_obj = p1_nml_objects,
         model_config = p1_model_config,
-        burn_in = 300,
-        burn_out = 190,
         export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather')
     },
     packages = c('retry','glmtools', 'GLM3r'),
@@ -29,7 +27,8 @@ p2 <- list(
   tar_target(
     p2_glm_uncalibrated_run_groups,
     p2_glm_uncalibrated_runs %>%
-      select(site_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash, glm_success) %>%
+      select(site_id, gcm, time_period, gcm_start_date, gcm_end_date, 
+             export_fl, export_fl_hash, glm_success) %>%
       group_by(site_id, gcm) %>% 
       filter(all(glm_success)) %>%
       tar_group(),

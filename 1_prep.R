@@ -3,7 +3,11 @@ source('1_prep/src/build_model_config.R')
 source('1_prep/src/munge_nmls.R')
 
 p1 <- list(
-  # pull in files from lake-temperature-model-prep
+  # Define mapping variables
+  tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
+  tar_target(p1_gcm_time_periods, c('1981_2000', '2040_2059', '2080_2099')),
+  
+  ### Pull in files from lake-temperature-model-prep
   # TODO - transfer to Denali using globus
   # list of lake-specific attributes for nml modification
   # file copied from lake-temperature-model-prep repo
@@ -17,40 +21,43 @@ p1 <- list(
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
                arrange(site_id)),
+  # NetCDF files with munged GCM driver data (one per GCM)
+  # files copied from lake-temperature-model-prep repo
+  tar_target(p1_gcm_ncs, 
+             {
+               filename <- sprintf('1_prep/in/GCM_%s.nc', p1_gcm_names)
+               return(filename)
+               }, 
+             format = 'file',
+             pattern = map(p1_gcm_names)),
 
-  # Define mapping variables
+  # Pull vectors of site ids and data cell numbers
   tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
-  tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
-  tar_target(p1_gcm_dates, c('1980_1999', '2040_2059', '2080_2099')),
-  
-  # COMMENTING OUT FOR NOW, WHILE WE REFINE NETCDF APPROACH
-  # # map over gcm names to read in netCDF files - one per GCM
-  # tar_target(p1_gcm_ncs, {
-  #   filename <- sprintf('1_prep/in/7_GCM_%s.nc', p1_gcm_names)
-  #   return(filename)
-  # }, format = 'file', pattern = map(p1_gcm_names)),
-  # 
-  
-  # # TODO - come up with a more efficient way to split netCDF files
-  # # right now, each netCDF file is read in many times
-  # # split netCDF into feather files - by cell, GCM, and time period
-  # tar_target(p1_meteo_feathers,
-  #            munge_nc_files(p1_gcm_ncs, p1_gcm_names, p1_cell_nos, p1_gcm_dates, 
-  #                           outfile_template = '1_prep/out/GCM_%s_%s_%s.feather'),
-  #            format = 'file',
-  #            pattern = cross(p1_cell_nos, map(p1_gcm_ncs, p1_gcm_names), p1_gcm_dates)),
-  
-  # FOR NOW, USE LINDSAY'S FEATHER FILES, BROUGHT IN MANUALLY
-  # mapping over gcm_names, gcm_dates, and cell_nos to read in Lindsay's created feather files
-  tar_target(p1_meteo_feathers, 
-             sprintf('1_prep/tmp/GCM_%s_%s_%s.feather', p1_gcm_names, p1_gcm_dates, p1_cell_nos),
+
+  # Specify length of desired burn-in and burn-out periods, in days
+  tar_target(p1_burn_in, 300),
+  tar_target(p1_burn_out, 190),
+  # Pull out start and end dates of raw meteo data
+  # and note start of burn-in and end of burn-out
+  tar_target(p1_gcm_dates,
+             munge_gcm_dates(p1_gcm_ncs,
+                             p1_gcm_time_periods,
+                             burn_in = p1_burn_in,
+                             burn_out = p1_burn_out)),
+  # Generate GCM/time-period/cell-specific csv files
+  tar_target(p1_meteo_csvs,
+             munge_nc_files(p1_gcm_ncs, 
+                            p1_gcm_names, 
+                            p1_cell_nos,
+                            p1_gcm_dates,
+                            outfile_template = '1_prep/out/GCM_%s_%s_%s.csv'),
              format = 'file',
-             pattern = cross(p1_gcm_names, p1_gcm_dates, p1_cell_nos)),
-  
+             pattern = map(p1_gcm_ncs, p1_gcm_names)),
+
   # build model config
   tar_target(p1_model_config,
-             build_model_config(p1_meteo_feathers, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
+             build_model_config(p1_meteo_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
   
   # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes
