@@ -26,35 +26,26 @@ date_to_time_period <- function(time, gcm_time_periods) {
 #' @param burn_out length of burn-out period, in days
 #' @return a munged dataframe of meteorological data that includes
 #' burn-in and burn-out time
-add_burn_in_out_to_meteo <- function(meteo_data, burn_in = 300, burn_out = 190){
+add_burn_in_out_to_meteo <- function(meteo_data, burn_in = 0, burn_out = 0){
 
-  # add the burn-in/burn-out if the requested burn-in/burn-out period is 
-  # shorter than the length of the raw meteo data
-  ndays_meteo <- nrow(meteo_data) #data is formatted as one row per day
-  if (burn_in <= ndays_meteo) {
+  # add the burn-in/burn-out 
+  # burn-in length and burn-out length have already been checked against
+  # the length of the raw meteo data in `munge_gcm_dates()`
+  if (burn_in > 0) {
     # create a burn-in. We're going to mirror the data of the first year:
-    burn_in_data <- meteo_data[2:burn_in, ] %>% arrange(desc(time)) %>%
-      mutate(time = seq(from = meteo_data[1,]$time-burn_in+1, by = 'day', length.out = length(2:burn_in)))
+    burn_in_data <- meteo_data[2:(burn_in+1), ] %>% arrange(desc(time)) %>%
+      mutate(time = seq(from = meteo_data[1,]$time-burn_in, by = 'day', length.out = length(2:(burn_in+1))))
     # bind with real data, prior to the begin date. We're not duplicating dates, hence the "2"
     meteo_data <- bind_rows(burn_in_data, meteo_data)
-  } else {
-    message(paste(sprintf('The requested burn-in length (%s days) exceeds', burn_in),
-                  sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
-                  'No burn-in will be added.',
-                  sep = "\n"))
   }
-  if (burn_out <= ndays_meteo) {
+  if (burn_out > 0) {
     # create a burn-out. Mirror the final data:
-    burn_out_data <- tail(meteo_data, burn_out) %>% head(-1L) %>% arrange(desc(time)) %>%
-      mutate(time = seq(from = tail(meteo_data,1)$time+1, by = 'day', length.out = length(2:burn_out)))
+    burn_out_data <- tail(meteo_data, (burn_out+1)) %>% head(-1L) %>% arrange(desc(time)) %>%
+      mutate(time = seq(from = tail(meteo_data,1)$time+1, by = 'day', length.out = length(2:(burn_out+1))))
     # bind with real data, at the end of the sequence
     meteo_data <- bind_rows(meteo_data, burn_out_data)
-  } else {
-    message(paste(sprintf('The requested burn-out length (%s days) exceeds', burn_out),
-                  sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
-                  'No burn-out will be added.',
-                  sep = "\n"))
   }
+  
   return(meteo_data)
 }
 
@@ -64,19 +55,16 @@ add_burn_in_out_to_meteo <- function(meteo_data, burn_in = 300, burn_out = 190){
 #' @param gcm_nc filename of a GCM netCDF file
 #' @param gcm_name name of one of the six GCMs
 #' @param cell_nos vector of GCM cell ids
-#' @param gcm_time_periods - the three GCM time periods, defined by their bracketing years
-#' @param burn_in length of burn-in period, in days. Used to mirror the 
-#' start of the raw meteorological data to create a burn-in period for 
-#' the model simulation.
-#' @param burn_out length of burn-out period, in days. Used to mirror the 
-#' end of the raw meteorological data to create a burn-out period for 
-#' the model simulation.
+#' @param gcm_dates - a tibble with a row for each time period, and columns specifying
+#' the start and end date of each time period, as well as the length of
+#' burn in, the burn-in start date, the length of burn-out, and the burn-out
+#' end date for each time period
 #' @param outfile_template string representing the filepath at which to save
 #' the csv file output of the split netCDF data. The first `%s` is
 #' used as the placeholder for the `gcm_name`, the second is for the time period,
 #' and the third is for the data_cell_no
 #' @return names of gcm/time-period/cell-specific csv files
-munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in, burn_out, outfile_template) {
+munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_dates, outfile_template) {
   # Open the netCDF file for the current GCM
   nc <- ncdfgeom::read_timeseries_dsg(gcm_nc)
   
@@ -96,7 +84,7 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in
       # Once all variables have been compiled for each cell,
       # Add a column for time and determine the time period for each row
       mutate(time = nc_dates,
-             time_period = date_to_time_period(time, gcm_time_periods)
+             time_period = date_to_time_period(time, gcm_dates$time_period)
              ) %>%
       # Reorder the columns to match the standard order
       select(time_period, time, Shortwave, Longwave, AirTemp, RelHum, WindSpeed, Rain, Snow) %>%
@@ -104,11 +92,12 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in
       group_by(time_period) %>%
       # For each time period...
       group_map(~ {
-        time_period <- .y$time_period
+        group_time_period <- .y$time_period
+        time_period_date_info <- filter(gcm_dates, time_period==group_time_period)
         # add the specified number of burn_in and burn_out days
-        meteo_w_burn_in_out <- add_burn_in_out_to_meteo(.x)
+        meteo_w_burn_in_out <- add_burn_in_out_to_meteo(.x, time_period_date_info$burn_in, time_period_date_info$burn_out)
         # then write the data for the current cell to a csv file
-        outfile <- sprintf(outfile_template, gcm_name, time_period, cell_no)
+        outfile <- sprintf(outfile_template, gcm_name, group_time_period, cell_no)
         fwrite(meteo_w_burn_in_out, outfile)
         return(outfile)
       })
@@ -117,24 +106,55 @@ munge_nc_files <- function(gcm_nc, gcm_name, cell_nos, gcm_time_periods, burn_in
   return(time_period_cell_files)
 }
 
+#' @title check length of requested burn-in/out
+#' @description for each time period, check whether the length of the 
+#' requested burn-in/out exceeds the length of the raw GCM meteorological 
+#' data, and, if so, note that no burn-in/out will be added
+#' @param gcm_time_period - one of the three GCM time periods, defined by
+#' bracketing years
+#' @param gcm_start_date - the first date in the GCM time period
+#' @param gcm_end_date - the final date in the GCM time period
+#' @param type - burn-in / burn-out depending on which is being checked
+#' @param burn_days - the length of the requested burn-in/out, in days
+#' @return the # of burn-in/out days that will be added to the meteorological
+#' GCM data for the time period
+check_burn_length <- function(gcm_time_period, gcm_start_date, gcm_end_date, type, burn_days) {
+  # compute length of raw gcm data, in days
+  ndays_meteo <- gcm_end_date-gcm_start_date
+  
+  # Check length of requested burn-in/out against length of raw gcm data
+  if (burn_days > (ndays_meteo)) {
+    message(paste(sprintf('Checking requested %s for %s', type, gcm_time_period),
+                  sprintf('The requested %s length (%s days) exceeds', type, burn_days),
+                  sprintf('the length of the raw meteorological data (%s days).', ndays_meteo),
+                  sprintf('No %s will be added for the time period %s.', type, gcm_time_period), 
+                  '', sep = "\n"))
+    burn_days <- 0
+  }
+
+  return(burn_days)
+}
+
+
 #' @title Munge GCM dates
 #' @description Function to determine the start and end dates of each
 #' GCM time period and document the date when burn-in starts and the date
-#' when burn-out ends
-#' @param gcm_nc filenames of the GCM netCDF files
+#' when burn-out ends, checking that the requested burn-in/out doesn't
+#' exceed the length of the raw GCM meteorological data.
+#' @param gcm_ncs filenames of the GCM netCDF files
 #' @param gcm_time_periods - the three GCM time periods, defined by their 
 #' bracketing years
-#' @param burn_in length of burn-in period, in days. Used to mirror the 
-#' start of the raw meteorological data to create a burn-in period for 
-#' the model simulation.
-#' @param burn_out length of burn-out period, in days. Used to mirror the 
-#' end of the raw meteorological data to create a burn-out period for 
-#' the model simulation.
+#' @param burn_in length of the requested burn-in period, in days. Used 
+#' to mirror the start of the raw meteorological data to create a burn-in 
+#' period for the model simulation.
+#' @param burn_out length of the requested burn-out period, in days. Used 
+#' to mirror the end of the raw meteorological data to create a burn-out 
+#' period for the model simulation.
 #' @return a tibble with a row for each time period, and columns specifying
 #' the start and end date of each time period, as well as the length of
 #' burn in, the burn-in start date, the length of burn-out, and the burn-out
 #' end date for each time period
-munge_gcm_dates <- function(gcm_time_periods, gcm_ncs, burn_in, burn_out) {
+munge_gcm_dates <- function(gcm_ncs, gcm_time_periods, burn_in, burn_out) {
   # Use first nc file, since all have the same date range
   nc <- ncdfgeom::read_timeseries_dsg(gcm_ncs[1])
   
@@ -147,20 +167,12 @@ munge_gcm_dates <- function(gcm_time_periods, gcm_ncs, burn_in, burn_out) {
     mutate(
       # a burn-in period only will have been added if the requested burn-in period was 
       # shorter than the length of the raw meteo data
-      burn_in = case_when(
-        burn_in <= (gcm_end_date-gcm_start_date) ~ burn_in, 
-        TRUE ~ 0),
-      burn_in_start = case_when(
-        burn_in > 0 ~ gcm_start_date-burn_in+1, 
-        TRUE ~ gcm_start_date),
+      burn_in = check_burn_length(time_period, gcm_start_date, gcm_end_date, 'burn-in', burn_in),
+      burn_in_start = gcm_start_date-burn_in,
       # a burn-out period only will have been added if the requested burn-out period was 
       # shorter than the length of the raw meteo data
-      burn_out = case_when(
-        burn_out <= (gcm_end_date-gcm_start_date) ~ burn_out, 
-        TRUE ~ 0),
-      burn_out_end = case_when(
-        burn_out > 0 ~ gcm_end_date+burn_out-1, 
-        TRUE ~ gcm_end_date))
+      burn_out = check_burn_length(time_period, gcm_start_date, gcm_end_date, 'burn-out', burn_out),
+      burn_out_end = gcm_end_date+burn_out)
   
   return(nc_dates)
 }

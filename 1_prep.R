@@ -41,18 +41,16 @@ p1 <- list(
   # Pull out start and end dates of raw meteo data
   # and note start of burn-in and end of burn-out
   tar_target(p1_gcm_dates,
-             munge_gcm_dates(p1_gcm_time_periods, 
-                            p1_gcm_ncs,
-                            burn_in = p1_burn_in,
-                            burn_out = p1_burn_out)),
+             munge_gcm_dates(p1_gcm_ncs,
+                             p1_gcm_time_periods,
+                             burn_in = p1_burn_in,
+                             burn_out = p1_burn_out)),
   # Generate GCM/time-period/cell-specific csv files
   tar_target(p1_meteo_csvs,
              munge_nc_files(p1_gcm_ncs, 
                             p1_gcm_names, 
                             p1_cell_nos,
-                            p1_gcm_time_periods,
-                            burn_in = p1_burn_in,
-                            burn_out = p1_burn_out,
+                            p1_gcm_dates,
                             outfile_template = '1_prep/out/GCM_%s_%s_%s.csv'),
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
