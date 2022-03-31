@@ -132,10 +132,23 @@ munge_gcm_dates <- function(gcm_time_periods, gcm_ncs, burn_in, burn_out) {
     ) %>%
     group_by(time_period) %>%
     summarize(gcm_start_date = min(time), gcm_end_date = max(time)) %>%
-    mutate(burn_in = burn_in,
-           burn_in_start = gcm_start_date-burn_in+1,
-           burn_out = burn_out,
-           burn_out_end = gcm_end_date+burn_out-1)
+    mutate(
+      # a burn-in period only will have been added if the requested burn-in period was 
+      # shorter than the length of the raw meteo data
+      burn_in = case_when(
+        burn_in <= (gcm_end_date-gcm_start_date) ~ burn_in, 
+        TRUE ~ 0),
+      burn_in_start = case_when(
+        burn_in > 0 ~ gcm_start_date-burn_in+1, 
+        TRUE ~ gcm_start_date),
+      # a burn-out period only will have been added if the requested burn-out period was 
+      # shorter than the length of the raw meteo data
+      burn_out = case_when(
+        burn_out <= (gcm_end_date-gcm_start_date) ~ burn_out, 
+        TRUE ~ 0),
+      burn_out_end = case_when(
+        burn_out > 0 ~ gcm_end_date+burn_out-1, 
+        TRUE ~ gcm_end_date))
   
   return(nc_dates)
 }
