@@ -8,9 +8,9 @@
 #' feather file
 #' @param run_group a single group from the `p2_glm_uncalibrated_run_groups`
 #' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
-#' to the site_id, gcm, time_period, raw_meteo_fl, export_fl, and 
-#' export_fl_hash columns and grouped by site_id and gcm. Then filtered to 
-#' only groups for which glm_success==TRUE for all runs in that group. 
+#' to the site_id, gcm, time_period, gcm_start_date, gcm_end_date, export_fl,  
+#' and export_fl_hash columns and grouped by site_id and gcm. Then filtered  
+#' to only groups for which glm_success==TRUE for all runs in that group. 
 #' The function maps over these groups.
 #' @param outfile_template the template for the name of the
 #' final output feather file
@@ -25,18 +25,16 @@ combine_glm_output <- function(run_group, outfile_template) {
   # saving only the temperature predictions and ice flags, and
   # truncating output for each time period to valid dates
   # (excluding burn-in and burn-out periods)
-  purrr::map2_df(run_group$raw_meteo_fl, run_group$export_fl, function(raw_meteo_fl, export_file) {
-    # Define time period begin and end dates from raw meteo_fl
-    meteo_data <- arrow::read_feather(raw_meteo_fl, col_select = "time")
-    begin <- min(meteo_data$time)
-    end <- max(meteo_data$time)
+  purrr::pmap_df(run_group, function(...) {
+    current_run <- tibble(...)
     # read in data for that time period, remove the ice
     # thickness, evaporation, and n_layers variables, and truncate
-    # the predictions based on the defined begin and end dates
-    arrow::read_feather(export_file) %>%
+    # the predictions based on the defined start and end dates
+    arrow::read_feather(current_run$export_fl) %>%
       select(-hice, -evap, -n_layers) %>%
-      filter(time >= as.Date(begin) & time <= as.Date(end))
-  }) %>% arrow::write_feather(outfile)
+      filter(time >= current_run$gcm_start_date & time <= current_run$gcm_end_date)
+  }) %>% 
+    arrow::write_feather(outfile)
   
   return(outfile)
 }

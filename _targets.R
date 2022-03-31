@@ -2,7 +2,11 @@ library(targets)
 options(clustermq.scheduler = "multicore")
 
 suppressPackageStartupMessages(library(tidyverse))
-tar_option_set(packages = c('tidyverse', 'ncdf4', 'ncdf4.helpers', 'arrow'))
+tar_option_set(packages = c('tidyverse', 
+                            'data.table',
+                            'ncdfgeom',
+                            'arrow',
+                            'lubridate'))
 
 source('1_prep.R')
 source('2_run.R')
