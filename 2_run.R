@@ -44,7 +44,8 @@ p2 <- list(
   tar_target(
     p2_glm_uncalibrated_lake_groups,
     p2_glm_uncalibrated_runs %>%
-      select(site_id, gcm, time_period, raw_meteo_fl, export_fl, export_fl_hash, glm_success) %>%
+      select(site_id, gcm, time_period, gcm_start_date, gcm_end_date, 
+             export_fl, export_fl_hash, glm_success) %>%
       group_by(site_id) %>% 
       filter(all(glm_success)) %>%
       tar_group(),
