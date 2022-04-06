@@ -37,31 +37,23 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Build GLM executable from source, based on jread's build script.
-# Need to fix the other libraries to a commit around the time that the no-gui
-# fix was added to GLM, since they will have moved on since then. In each case,
-# I've used the most recent commit which was earlier than the no-gui fix in GLM.
+# Note that libaed, libutil, and libaid-water could be built from a fixed
+# commit like libplot is.
 WORKDIR /tmp
 RUN git clone https://github.com/AquaticEcoDynamics/libplot.git && \
-  cd libplot && git reset --hard 1277a5c215d38ae87e54c5134fe39b7a73a12e20 && cd .. && \
+  #cd libplot && git reset --hard 727ed89ce21d84abadf65e16854e8dd307d0c191 && cd .. && \
   git clone https://github.com/AquaticEcoDynamics/libaed2.git && \
-  cd libaed2 && git reset --hard 3e031a7590ef6d284149fdcae3df0b2ef9482f3f && cd .. && \
   git clone https://github.com/AquaticEcoDynamics/libutil.git && \
-  cd libutil && git reset --hard 8fc472f236e36a0bafc6ff2db4bf27b4644e3bf8 && cd .. && \
   git clone https://github.com/AquaticEcoDynamics/libaed-water.git && \
-  cd libaed-water && git reset --hard d6a94e4e39ee65b871beebd377647d05c79bfc51 && cd .. && \
   git clone https://github.com/AquaticEcoDynamics/GLM.git && \
   cd GLM && \
-  # The line below pins GLM at "version" 3.2.0a3 (plus unversioned bug
-  # fix commit(s)). See this history:
+  # The line below pins GLM at "version" 3.2.0a8 (plus one unversioned bug
+  # fix commit). See this history:
   # https://github.com/AquaticEcoDynamics/GLM/commits/master
   # The glm.h file there contains a line like 
-  # #define GLM_VERSION "3.2.0a3"
+  # #define GLM_VERSION "3.2.0a8"
   # which defines the version.
-  # Version 3.2.0a3 was introduced with 75b4b4063f74c4034116d0abd21a09d8521f76cf
-  # i.e. 2020-11-7
-  # And the no-gui fix is at cd94d86afb7e35ac6df6e0fc0845322b4be5e2e4, which
-  # commit was added on 2021-02-16
-  git reset --hard cd94d86afb7e35ac6df6e0fc0845322b4be5e2e4 &&\
+  git reset --hard 82a76cef128f2fadb77ce358bdfb43e45dd8f5ae &&\
   ./build_glm.sh && \
   mkdir /usr/local/bin/GLM && \
   mv glm /usr/local/bin/GLM && \
@@ -69,9 +61,9 @@ RUN git clone https://github.com/AquaticEcoDynamics/libplot.git && \
   rm -rf *
 
 RUN Rscript -e 'library(remotes); \
-                install_github(c("GLEON/GLMr", \
-                                 "GLEON/GLM3r", \
-                                 "GLEON/glmtools"));' \
+                install_github("GLEON/GLMr"); \
+                install_github("GLEON/GLM3r"); \
+                install_github("GLEON/glmtools");' \
   && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # Install the necessary pipeline and parallelization packages for R
