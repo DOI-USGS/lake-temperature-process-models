@@ -104,7 +104,7 @@ Shifter on denali is not recommended for running interactive RStudio sessions on
 ### Quick Start
 The home directories and `/caldera/` filesystems are the same on tallgrass as on caldera. In order to get an interactive session:
 
-1. Pull the docker image into a singularity image, if that hasn't already been done. A singularity image is just a `.sif` file, and it can be located anywhere. So, for example, `singularity pull docker://jrossusgs/glm3r:v0.6_GLM_3.2.0a8`.
+1. Pull the docker image into a singularity image, if that hasn't already been done. A singularity image is just a `.sif` file, and it can be located anywhere. So, for example, `singularity pull docker://jrossusgs/glm3r:v0.7`.
 1. `module load slurm` and `cd` to the project directory
 1. Update the `launch-rstudio-container.slurm` file to point to this by changing the value of `SIF_FILE` to point to your `.sif` file. Use a full path if the `.sif` file isn't in the project directory.
 1. To launch the container, `sbatch launch-rstudio-container.slurm`.

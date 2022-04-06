@@ -7,7 +7,7 @@
 #SBATCH --nodes=1                       # only request one node
 #SBATCH --mem=32GB                      # don't settle for less than 32 GB
 
-export $SIF_FILE=glm3r_v0.6_GLM_3.2.0a8.sif
+export $SIF_FILE=glm3r_v0.7.sif
 
 ###################################  NOTE  #####################################
 # This submission script is based on the rocker project's singularity docs as  #
