@@ -2,6 +2,7 @@ FROM rocker/geospatial:4.1.2
 
 # Disable the annoying bell on WSL2
 RUN sed -i 's/^# set bell-style none$/set bell-style none/' /etc/inputrc
+RUN echo 'set visualbell' >> /root/.vimrc
 
 # Add DOI CA to local CAs so that SSL can work over VPN
 COPY DOIRootCA2.crt /usr/local/share/ca-certificates
@@ -25,8 +26,8 @@ options(clustermq.scheduler = "multicore")\n\
 Sys.setenv(GLM_PATH = "/usr/local/bin/GLM/glm")' \
   >> /usr/local/lib/R/etc/Rprofile.site
 
-# Dependencies: ZeroMQ library for clustermq and libglpk40 for igraph/targets
-RUN apt-get update && apt-get install -y \
+# Dependencies, including libzmq3-dev for clustermq and libglpk40 for igraph/targets
+RUN apt-get update && apt-get -y --no-install-recommends install \
   apt-utils \
   libgd-dev \
   libnetcdf-dev \
@@ -74,6 +75,7 @@ RUN install2.r --error \
   igraph \
   ncdf4 \
   ncdf4.helpers \
+  ncdfgeom \
   retry \
   tarchetypes \
   targets \

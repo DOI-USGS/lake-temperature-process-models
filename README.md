@@ -33,15 +33,15 @@ module load shifter
 ```
 Here's how to get the image that Jesse built from Dockerhub and translate it to shifter (this should only need to be done once per image):
 ```R
-shifterimg pull docker:jrossusgs/glm3r:v0.6d
+shifterimg pull docker:jrossusgs/glm3r:v0.7
 ```
 Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
-srun --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
+srun --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.7 Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
 ```
 Here's how to run the shifter container interactively on an allocated job:
 ```R
-srun --pty --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.6d /bin/bash
+srun --pty --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.7 /bin/bash
 # when you're in the shifter environment, the prompt starts with "I have no name!@"
 R
 library(targets)
