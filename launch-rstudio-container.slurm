@@ -53,7 +53,8 @@ touch ${workdir}/singularity_vars
 # https://github.com/rstudio/rstudio/blob/v1.4.1106/src/cpp/server/ServerSessionManager.cpp#L126
 export SINGULARITYENV_RSTUDIO_SESSION_TIMEOUT=0
 
-# Set the local directory as the place for session information. This should make# command line history more relevant, as it will be restricted to the project
+# Set the local directory as the place for session information. This should make
+# command line history more relevant, as it will be restricted to the project
 # currently being worked on.
 # Based on:
 # Pointer here: https://support.rstudio.com/hc/en-us/articles/218730228-Resetting-a-user-s-state-on-RStudio-Workbench-RStudio-Server
@@ -87,7 +88,7 @@ When done using RStudio Server, terminate the job by:
 END
 
 module load singularity
-singularity exec  run-pgdl-da.sif \
+singularity exec  glm3r_v0.7.sif \
     bash -c "cp /usr/local/lib/R/etc/Renviron.site.orig /usr/local/lib/R/etc/Renviron.site; \
             echo SINGULARITY_CONTAINER=\$SINGULARITY_CONTAINER >> /usr/local/lib/R/etc/Renviron.site; \
             echo SINGULARITY_BIND=\$SINGULARITY_BIND >> /usr/local/lib/R/etc/Renviron.site; \
