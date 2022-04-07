@@ -16,56 +16,42 @@ _Files used in current testing development phase:_
 
 ## Running the pipeline on HPC, in parallel
 
-### Denali quickstart
+### Tallgrass quickstart
 ```R
-ssh denali.cr.usgs.gov
+ssh tallgrass.cr.usgs.gov
 cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/lake-temperature-process-models
 
-# to change user permissions for collaboration
+# Change user permissions for collaboration.
+# Best practice is to add this line to your `~/.bashrc` on tallgrass, so you don't forget!
 umask 002
 ```
 
-### Shifter
-For any of the following applications, you'll need the shifter module:
+### Singularity
+Singularity is a program for running code in containers. It is fundamentally similar to docker, and is capable of generating containers based on docker images. It is the containerization technology used in the tallgrass and yeti HPC environments. For more information, see [here](https://code.usgs.gov/wwatkins/hpc_container_blog).
 
-```R
-module load shifter
+For the following applications, you'll need to load the singularity and slurm modules:
+
+```bash
+module load singularity slurm
 ```
-Here's how to get the image that Jesse built from Dockerhub and translate it to shifter (this should only need to be done once per image):
-```R
+Here's how to get the image that Jesse built from Dockerhub and translate it to shifter (this has already been done for the image listed below, and should only need to be re-done if a new image is built):
+```bash
+cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/lake-temperature-process-models
 shifterimg pull docker:jrossusgs/glm3r:v0.7
+# now you can see the singularity image: it is a file called glm3r_v0.7.sif
 ```
-Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the shifter container, with a specified number of workers (up to 80, as Denali has 80 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
+Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the singularity container, with a specified number of workers (up to 72, as Tallgrass has 72 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript`. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
-srun --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.7 Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)'
+srun --pty -c 10 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=10)'
 ```
+
 Here's how to run the shifter container interactively on an allocated job:
 ```R
-srun --pty --nodes=1 -t 00:30:00 -A watertemp shifter --image=docker:jrossusgs/glm3r:v0.7 /bin/bash
-# when you're in the shifter environment, the prompt starts with "I have no name!@"
+srun --pty -c 10  -A watertemp singularity exec glm3r_v0.7.sif bash
 R
 library(targets)
 tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)
 # etc
-q()
-exit
-```
-
-Alternatively, once a node is allocated it can be ssh'ed to:
-```bash
-jross@denali-login2:~> module load shifter
-jross@denali-login2:~> salloc -n 1 -t 07:00:00 -A watertemp
-salloc: Granted job allocation 2788434
-salloc: Waiting for resource configuration
-salloc: Nodes nid00418 are ready for job
-jross@denali-login2:~> ssh nid00418
-
-*** Welcome to IMPS compute node c2-0c0s8n2 (nid 418) ***
-    Running 200MB Suse 15 image slurm_compute-large_up01
-    CLE release 7.0.UP01, build 7.0.1214(20190926)
-    80 vcores, boot_freemem: 190174mb
-
-jross@nid00418:~>
 ```
 
 -----------------
@@ -79,14 +65,15 @@ The pipeline can be run in parallel locally through docker, just as it can be ru
 Simple command-line R interface:
 ```bash
 cd ~/lake-temperature-process-models
-docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.6d R
-## Now you have an R prompt in the container, with the project directory mounted at `/lakes/`.
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.7 R
+# Now you have an R prompt in the container, with the project directory mounted at `/lakes/`.
+# You can `setwd("/lakes")` and start working.
 ```
 
 Or alternatively, you could run RStudio in the container and access it through your browser (user is rstudio, password set in the startup command as mypass).
 ```bash
 cd ~/lake-temperature-process-models
-docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787 -e PASSWORD=mypass -e ROOT=TRUE -d jrossusgs/glm3r:v0.6d
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787 -e PASSWORD=mypass -e ROOT=TRUE -d jrossusgs/glm3r:v0.7
 ```
 
 ```r
