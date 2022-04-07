@@ -73,10 +73,9 @@ RUN install2.r --error \
   clustermq \
   fst \
   igraph \
-  ncdf4 \
-  ncdf4.helpers \
   ncdfgeom \
   retry \
+  RNetCDF \
   tarchetypes \
   targets \
   && rm -rf /tmp/downloaded_packages/ /tmp/*.rds

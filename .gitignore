@@ -52,3 +52,6 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Singularity SIF files
+*.sif
