@@ -34,18 +34,18 @@ For the following applications, you'll need to load the singularity and slurm mo
 ```bash
 module load singularity slurm
 ```
-Here's how to get the image that Jesse built from Dockerhub and translate it to shifter (this has already been done for the image listed below, and should only need to be re-done if a new image is built):
+Here's how to get the image that Jesse built from Dockerhub and translate it to Singularity (this has already been done for the image listed below, and should only need to be re-done if a new image is built):
 ```bash
 cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/lake-temperature-process-models
-shifterimg pull docker:jrossusgs/glm3r:v0.7
+singularity pull docker://jrossusgs/glm3r:v0.7
 # now you can see the singularity image: it is a file called glm3r_v0.7.sif
 ```
-Here's how to build targets using the shifter container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the singularity container, with a specified number of workers (up to 72, as Tallgrass has 72 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript`. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
+Here's how to build targets using the Singularity container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the Singularity container, with a specified number of workers (up to 72, as Tallgrass has 72 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript`. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
 srun --pty -c 10 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=10)'
 ```
 
-Here's how to run the shifter container interactively on an allocated job:
+Here's how to run the Singularity container interactively on an allocated job:
 ```R
 srun --pty -c 10  -A watertemp singularity exec glm3r_v0.7.sif bash
 R
@@ -54,13 +54,24 @@ tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)
 # etc
 ```
 
+You can also get an interactive RStudio on tallgrass. The best documentation for this is currently [here](https://code.usgs.gov/wma/wp/pump-temperature#running-interactive-sessions-on-hpc). The tl;dr is
+
+```bash
+# Launch the session
+sbatch launch-rstudio-container.slurm
+# Make sure the session is running on a compute node
+squeue -u jross
+# Now read the generated instructions for how to access the session
+cat tmp/rstudio_jross.out
+```
+
 -----------------
 
 ## Running the pipeline locally, in serial
 You can simply build targets as normal, using `tar_make()`, and `targets` will ignore the `cluster_mq.scheduler` options set in `'_targets.R'`
 
 ## Running the pipeline locally, in parallel
-The pipeline can be run in parallel locally through docker, just as it can be run through shifter on denali.
+The pipeline can be run in parallel locally through docker, just as it can be run through Singularity on tallgrass.
 
 Simple command-line R interface:
 ```bash
