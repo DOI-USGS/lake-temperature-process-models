@@ -67,6 +67,18 @@ cat tmp/rstudio_jross.out
 
 -----------------
 
+## Building the Docker image
+
+This is as simple as editing the Dockerfile and running a command to rebuild it. What follows is a teaser. It won't be as simple as this, because currently the image is hosted on Jesse's Docker Hub. We should put the image on the CHS docker server instead, but we can wait until when (or, if) it needs to be built again to do so.
+
+```bash
+cd docker
+docker-compose build   # maybe change version tag in docker-compose.yml first
+docker-compose up      # test it
+docker-compose push    # push the updated image to the server
+```
+
+-----------------
 ## Running the pipeline locally, in serial
 You can simply build targets as normal, using `tar_make()`, and `targets` will ignore the `cluster_mq.scheduler` options set in `'_targets.R'`
 
@@ -75,6 +87,7 @@ The pipeline can be run in parallel locally through docker, just as it can be ru
 
 Simple command-line R interface:
 ```bash
+docker pull jrossusgs/glm3r:v0.7
 cd ~/lake-temperature-process-models
 docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.7 R
 # Now you have an R prompt in the container, with the project directory mounted at `/lakes/`.
@@ -83,6 +96,7 @@ docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusg
 
 Or alternatively, you could run RStudio in the container and access it through your browser (user is rstudio, password set in the startup command as mypass).
 ```bash
+docker pull jrossusgs/glm3r:v0.7
 cd ~/lake-temperature-process-models
 docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787 -e PASSWORD=mypass -e ROOT=TRUE -d jrossusgs/glm3r:v0.7
 ```
