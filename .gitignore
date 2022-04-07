@@ -55,3 +55,9 @@ vignettes/*.pdf
 
 # Singularity SIF files
 *.sif
+
+# RStudio session directories on tallgrass
+.local_*
+
+# Rstudio launch script output directories on tallgrass
+tmp/
