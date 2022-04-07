@@ -65,6 +65,9 @@ squeue -u jross
 cat tmp/rstudio_jross.out
 ```
 
+### Caution
+RStudio may not be as good an environment for running parallelized targets pipelines as running them through `Rscript -e`. The [clustermq user guide](https://cran.r-project.org/web/packages/clustermq/vignettes/userguide.html) says that the `multicore` scheduler sometimes causes problems in RStudio. I haven't run into this, but if it happens, you might need to switch to `multiprocess`. This uses more RAM. Might not be a problem, just something to be aware of!
+
 -----------------
 
 ## Building the Docker image
