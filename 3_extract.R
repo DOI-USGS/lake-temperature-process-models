@@ -1,4 +1,5 @@
 source('3_extract/src/process_glm_output.R')
+source('3_extract/src/build_output_netCDFs.R')
 
 p3 <- list(
   # Use grouped target to combine glm output into feather files
@@ -31,6 +32,11 @@ p3 <- list(
       tar_group(),
     iteration = "group"
   ),
+  
+  # Here, could put data into netCDF - if putting it by GCM, would want to group by GCM
+  # Makes sense to work off ^ or similar tibble so can track hash of output data
+  # Could work with raw feather output or ^ output feathers, which are just temp and ice
+  
   
   # Generate a zip file for each tile, zipping the grouped feathers
   tar_target(
