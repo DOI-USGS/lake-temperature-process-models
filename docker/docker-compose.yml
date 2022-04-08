@@ -6,6 +6,10 @@ services:
       context: .
     ports:
       - "8787:8787"
+    volumes:
+      - type: bind
+        source: ../
+        target: /code
     environment:
       - ROOT=TRUE
       - PASSWORD=mypass
