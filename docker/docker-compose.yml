@@ -9,7 +9,7 @@ services:
     volumes:
       - type: bind
         source: ../
-        target: /code
+        target: /lakes
     environment:
       - ROOT=TRUE
       - PASSWORD=mypass

@@ -81,7 +81,6 @@ RUN install2.r --error \
   && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # Fix umask problems with RStudio in singularity
-#RUN echo "server-set-umask=0" >> /etc/rstudio/rserver.conf
 RUN echo "Sys.umask(mode=002)" >> /usr/local/lib/R/etc/Rprofile.site
 
 # RStudio does not pick up the full environment from the singularity container!
