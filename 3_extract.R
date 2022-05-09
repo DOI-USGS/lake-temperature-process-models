@@ -16,8 +16,8 @@ p3 <- list(
   
   # Generate a tibble with a row for each output file
   # that includes the filename and its hash along with the
-  # site_id, gcm, the state the lake is in, and the cell_no 
-  # and tile_no for that lake.
+  # site_id, gcm, the state the lake is in, and the data and
+  # spatial cell_no and tile_no for that lake.
   tar_target(
     p3_glm_uncalibrated_output_feather_tibble,
     generate_output_tibble(p2_glm_uncalibrated_run_groups, p3_glm_uncalibrated_output_feathers, p1_lake_cell_tile_xwalk_df),
@@ -36,7 +36,25 @@ p3 <- list(
   # Here, could put data into netCDF - if putting it by GCM, would want to group by GCM
   # Makes sense to work off ^ or similar tibble so can track hash of output data
   # Could work with raw feather output or ^ output feathers, which are just temp and ice
-  
+  # Setup table of GLM variable definitions to use in NetCDF file metadata
+  tar_target(p3_nc_var_info,
+             tibble(
+               var_name = c("temp"),
+               longname = c("Surface water temperature [°C]"),
+               units = c("degrees Celcius"),
+               data_precision = c('float'),
+               compression_precision = c('.2')
+             )),
+  tar_target(
+    p3_glm_uncalibrated_nc,
+    generate_output_nc(
+      nc_file = '3_extract/out/GLM_projections.nc', 
+      lake_gcm_output = p3_glm_uncalibrated_output_feather_tibble, 
+      nc_var_info = p3_nc_var_info,
+      spatial_info = lake_centroids_sf, 
+      compression = FALSE),
+    format = 'file'
+  ),
   
   # Generate a zip file for each tile, zipping the grouped feathers
   tar_target(
