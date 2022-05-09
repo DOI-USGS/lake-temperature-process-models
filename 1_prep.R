@@ -13,6 +13,7 @@ p1 <- list(
   # file copied from lake-temperature-model-prep repo
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
+  tar_target(lake_centroids_sf_rds, '1_prep/in/centroid_lakes_sf.rds', format='file'),
   # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
   # that are in nml list (able to be modeled by GLM)
   # file copied from lake-temperature-model-prep repo
@@ -20,7 +21,8 @@ p1 <- list(
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
-               arrange(site_id)),
+               arrange(site_id) %>% #),
+               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))),
   # NetCDF files with munged GCM driver data (one per GCM)
   # files copied from lake-temperature-model-prep repo
   tar_target(p1_gcm_ncs, 
@@ -35,6 +37,12 @@ p1 <- list(
   tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
+  # Subset lake spatial info to
+  tar_target(lake_centroids_sf,
+             readRDS(lake_centroids_sf_rds) %>%
+               arrange(site_id) %>%
+               filter(site_id %in% p1_site_ids)),
+  
   # Specify length of desired burn-in and burn-out periods, in days
   tar_target(p1_burn_in, 300),
   tar_target(p1_burn_out, 190),
