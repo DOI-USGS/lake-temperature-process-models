@@ -1,0 +1,15 @@
+version: "3.1"
+services:
+  glm_test:
+    image: jrossusgs/glm3r:v0.7
+    build:
+      context: .
+    ports:
+      - "8787:8787"
+    volumes:
+      - type: bind
+        source: ../
+        target: /lakes
+    environment:
+      - ROOT=TRUE
+      - PASSWORD=mypass
