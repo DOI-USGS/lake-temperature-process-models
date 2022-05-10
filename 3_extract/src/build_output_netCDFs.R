@@ -1,5 +1,27 @@
 # Create NetCDF of all uncalibrated GLM output
 
+# ncdfgeom function https://github.com/USGS-R/ncdfgeom/blob/main/R/0_ncdfgeom.R
+add_var <- function(nc, name, dim, type, units = NA, missing = NA, long_name = NA, char_dim_len = NULL, data = NULL) {
+  
+  if(type == "NC_CHAR") {
+    suppressWarnings(if(is.null(char_dim_len) & is.null(data)) stop("can't determine character dim length"))
+    if(is.null(char_dim_len)) suppressWarnings(char_dim_len <- max(sapply(data, function(x) max(nchar(x), 
+                                                                                                na.rm = TRUE)), 
+                                                                   na.rm = TRUE))
+    char_dim <- paste0(name,"_char")
+    dim.def.nc(nc, char_dim, char_dim_len, unlim = FALSE)
+    dim <- c(char_dim, dim)
+  }
+  var.def.nc(nc, name, type, dim)
+  if(!any(is.na(units)))
+    att.put.nc(nc, name, "units", "NC_CHAR", units)
+  if(!is.na(missing))
+    att.put.nc(nc, name, "missing_value", type, missing)
+  if(!is.na(long_name))
+    att.put.nc(nc, name, "long_name", "NC_CHAR", long_name)
+}
+
+
 #' @title Creates a NetCDF file storing the GLM output
 #' @description Create a single NetCDF file containing temperature predictions at all depths in
 #' each lake, across all time periods, for each GCM, as well as ice flag predictions for each GCM.
@@ -8,14 +30,14 @@
 #' predictions for all 3 time periods) that includes the filename and its hash along with the site_id,
 #' gcm, the state the lake is in, and the data and spatial cell_no and tile_no for that lake.
 #' @param nc_var_info variables and descriptions to store in NetCDF
-#' @param spatial_info WGS84 coordinates of lake centroids
+#' @param site_coords WGS84 coordinates of lake centroids
 #' @param compression T/F if the nc file should be compressed after creation
 
 # idea is to create the file with write_timeseries_dsg() by perhaps filling with the zero depth data, 
 # then create a secondary function to add the depth dimension and add the additional data to those.
 # that later modification would be done with RNetCDF per explorations here:
 # https://github.com/hcorson-dosch/lake-temperature-model-prep/blob/bc4094cfb871a1b61dbfa78e4a9bae2c73789243/7_drivers_munge/src/GCM_driver_nc_utils.R#L101-L158
-generate_output_nc <- function(nc_file, lake_gcm_output, nc_var_info, spatial_info, compression) {
+generate_output_nc <- function(nc_file, lake_gcm_info, lake_gcm_output, nc_var_info, site_coords, compression) {
   # NOTE: adding a stop() for now while compression code and documentation still
   # needs to be refined further, but retaining draft code below
   if (compression == TRUE) {
@@ -39,41 +61,34 @@ generate_output_nc <- function(nc_file, lake_gcm_output, nc_var_info, spatial_in
   
   ### CODE TO LOAD DATA AND GET IN RIGHT SHAPE
   # Read in surface temperature predictions for each lake-gcm combo
-  temp_ice_data <- purrr::pmap_dfr(lake_gcm_output, function(...) {
-    current_lake_gcm <- tibble(...)
-    arrow::read_feather(current_lake_gcm$export_fl) %>%
-      pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
-      mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
-      # select(time, temperature=temp_0) %>% # for now, drop subsurface temps AND ice flags
-      mutate(site_id = current_lake_gcm$site_id,
-             gcm = current_lake_gcm$gcm, .before=1)
-  }) %>% arrange(site_id)
+  # temp_ice_data <- purrr::pmap_dfr(lake_gcm_output, function(...) {
+  #   current_lake_gcm <- tibble(...)
+  #   arrow::read_feather(current_lake_gcm$export_fl) %>%
+  #     pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
+  #     mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
+  #     mutate(site_id = current_lake_gcm$site_id,
+  #            gcm = current_lake_gcm$gcm, .before=1)
+  # }) %>% arrange(site_id)
   
-  ice_data <- temp_ice_data %>%
+  ice_data <- lake_gcm_output %>%
     filter(depth == 0) %>%
     select(site_id, gcm, time, ice)
   
-  temp_data <- temp_ice_data %>%
+  temp_data <- lake_gcm_output %>%
     select(-ice)
   
   # Pull vector of unique dates and convert to POSIXct
-  glm_dates <- as.POSIXct(unique(temp_data$time), tz='GMT')
+  glm_dates <- as.POSIXct(unique(lake_gcm_output$time), tz='GMT')
   
   # Pull vector of unique site ids
-  site_ids <- unique(temp_ice_data$site_id)
+  site_ids <- unique(lake_gcm_info$site_id)
   site_ids_dim_name <- "site_id"
   
-  # Get WGS84 latitude and longitude of lake centroids
-  lake_coords <- spatial_info %>%
-    mutate(lon = sf::st_coordinates(.)[,1], lat = sf::st_coordinates(.)[,2]) %>%
-    sf::st_set_geometry(NULL) %>%
-    arrange(site_id)
+  # Get vectors of lake centroid latitudes and longitudes
+  lake_centroid_lats <- site_coords %>% pull(lat)
+  lake_centroid_lons <- site_coords %>% pull(lon)
   
-  # Get vectors of cell centroid latitudes and longitudes
-  lake_centroid_lats <- lake_coords %>% pull(lat)
-  lake_centroid_lons <- lake_coords %>% pull(lon)
-  
-  # Set up attributes for NetCDF that are independent of variables
+  # Set up attributes for NetCDF
   data_time_units <- "days since 1970-01-01 00:00:00"
   source_info <- list('title' = 'GLM projections of lake temperture in MN lakes')
   data_attributes <- source_info
@@ -89,16 +104,36 @@ generate_output_nc <- function(nc_file, lake_gcm_output, nc_var_info, spatial_in
   
   ### CODE TO BUILD NETCDFS
   ## Write surface preds with write_timeseries_dsg()
-  
+
   # Get surface predictions for single GCM in wide format
-  surface_temp_data_access_wide <- temp_data %>%
-    filter(depth == 0) %>%
-    select(-depth) %>%
-    filter(gcm == 'ACCESS') %>%
-    select(-gcm) %>%
-    pivot_wider(id_cols = c("time"), names_from = site_id, values_from = temperature) %>% 
-    select(-time) %>%
-    as.data.frame()
+  # issue 1: not all sites will have preds for all GCMs (given current grouping)
+  # issue 2: need to filter and pivot - what is most efficient?
+  # approach 1: convert temp_data to data.table. Set keys (gcm, depth) and use keys to filter. transpose data.table (doesn't catch if missing preds for a GCM)
+  # approach 2: loop through site ids, filter data to site, depth, gcm. add data to matrix. convert matrix to data.frame
+  # approach 3: use dplyr to pivot filtered tibble then convert to data.frame (doesn't catch if missing preds for a GCM)
+  
+  initial_gcm <- 'ACCESS'
+  skipped_ids <- c()
+  surface_temps_gcm1 <- matrix(rep(NA_real_, length(glm_dates) * length(site_ids)), ncol = length(site_ids))
+  for (i in 1:length(site_ids)) {
+    this_site <- site_ids[i]
+    this_site_surface <- temp_data %>% filter(site_id==this_site, depth==0, gcm==initial_gcm) %>% pull(temperature)
+    if (length(this_site_surface) == nrow(surface_temps_gcm1)){
+      surface_temps_gcm1[, i] <- this_site_surface
+    } else {
+      skipped_ids <- c(skipped_ids, site_id)
+    }
+  }
+  # convert to data.frame since that is what the write_timeseries_dsg() file expects
+  surface_temps_gcm1 <- as.data.frame(surface_temps_gcm1) %>% setNames(site_ids)
+  
+  # # pivoting approach
+  # surface_temps_gcm1 <- temp_data %>%
+  #   filter(depth == 0, gcm == initial_gcm) %>%
+  #   select(-depth, -gcm) %>%
+  #   pivot_wider(id_cols = c("time"), names_from = site_id, values_from = temperature) %>%
+  #   select(-time) %>%
+  #   as.data.frame()
   
   # Check if nc file already exists, and therefore should be added to,
   # or if it needs to be created
@@ -112,7 +147,7 @@ generate_output_nc <- function(nc_file, lake_gcm_output, nc_var_info, spatial_in
                                  lats = lake_centroid_lats,
                                  lons = lake_centroid_lons,
                                  times = glm_dates,
-                                 data = surface_temp_data_access_wide,
+                                 data = surface_temps_gcm1,
                                  data_unit = temp_data_unit,
                                  data_prec = temp_data_prec,
                                  data_metadata = temp_data_metadata,
@@ -128,21 +163,30 @@ generate_output_nc <- function(nc_file, lake_gcm_output, nc_var_info, spatial_in
   nc <- RNetCDF::open.nc(nc_file, write=TRUE)
   
   # Add dimension for GCMs
-  gcms <- unique(temp_ice_data$gcm)
+  gcms <- unique(lake_gcm_info$gcm)
   gcms_dim_name <- "GCM"
   n_gcms <- length(gcms)
+  # define dimentions
   dim.def.nc(nc, gcms_dim_name, n_gcms, unlim=FALSE)
-  char_dim_len <- max(sapply(gcms, function(x) max(nchar(x),na.rm = TRUE)), na.rm = TRUE)
-  char_dim <- paste0(gcms_dim_name,"_char")
-  dim.def.nc(nc, char_dim, char_dim_len, unlim = FALSE)
-  dim <- c(char_dim, c(gcms_dim_name))
-  var.def.nc(nc, gcms_dim_name, "NC_CHAR", dim)
-  att.put.nc(nc, gcms_dim_name, "long_name", "NC_CHAR", 'Notaro debiased downscaled GCM')
-  att.put.nc(nc, gcms_dim_name, 'cf_role', "NC_CHAR", "timeseries_id")
+  # set up GCM info using ncdfgeom function `add_var()`
+  add_var(nc, gcms_dim_name, c(gcms_dim_name), "NC_CHAR", long_name = 'Notaro debiased downscaled GCM', data=gcms)
+  # Populate the variable with the actual GCM names
   var.put.nc(nc, gcms_dim_name, gcms)
   
-  # Loop through remaining GCMs to add surface temps
-  # put_data_in_nc(nc, nt, n, data_name, data, alts)
+  # # Loop through remaining GCMs to add surface temps
+  # remaining_gcms <- gcms[!(gcms  %in% initial_gcm)]
+  # # put_data_in_nc(nc, nt, n, data_name, data, alts)
+  # for (gcm in remaining_gcms) {
+  #   
+  # }
+  
+  # loop through GCMs to add ice data
+  # 3-dimensions: time, site_id, 
+  # ice_metadata <- nc_var_info %>% filter(var_name=='ice')
+  # data_name = ice_metadata[['name']]
+  # for (gcm in gcms) {
+  #   
+  # }
   
   # close netCDF
   RNetCDF::close.nc(nc)

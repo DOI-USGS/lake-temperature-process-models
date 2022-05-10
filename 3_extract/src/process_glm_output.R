@@ -4,28 +4,24 @@
 #' `p2_glm_uncalibrated_run_groups`), remove the ice thickness, 
 #' evaporation, and n_layers variables (leaving the temperature 
 #' predictions and ice flags), filter that output to exclude the
-#' burn-in and burn-out periods, and save the result as a single 
-#' feather file
+#' burn-in and burn-out periods, and return the result as a single 
+#' tibble
 #' @param run_group a single group from the `p2_glm_uncalibrated_run_groups`
 #' grouped version of the `p2_glm_uncalibrated_runs` output tibble subset 
 #' to the site_id, gcm, time_period, gcm_start_date, gcm_end_date, export_fl,  
 #' and export_fl_hash columns and grouped by site_id and gcm. Then filtered  
 #' to only groups for which glm_success==TRUE for all runs in that group. 
 #' The function maps over these groups.
-#' @param outfile_template the template for the name of the
-#' final output feather file
-#' @return a single feather file with the output temperature predictions
+#' @return a single tibble with the output temperature predictions
 #' and ice flags for that lake-gcm combo, filtered to the valid dates 
 #' from each time period
-combine_glm_output <- function(run_group, outfile_template) {
-  # set filename
-  outfile <- sprintf(outfile_template, unique(run_group$site_id), unique(run_group$gcm))
+combine_glm_output <- function(run_group) {
   
-  # combine into single feather file and write,
+  # combine into single tibble,
   # saving only the temperature predictions and ice flags, and
   # truncating output for each time period to valid dates
   # (excluding burn-in and burn-out periods)
-  purrr::pmap_df(run_group, function(...) {
+  lake_gcm_data <- purrr::pmap_df(run_group, function(...) {
     current_run <- tibble(...)
     # read in data for that time period, remove the ice
     # thickness, evaporation, and n_layers variables, and truncate
@@ -33,10 +29,9 @@ combine_glm_output <- function(run_group, outfile_template) {
     arrow::read_feather(current_run$export_fl) %>%
       select(-hice, -evap, -n_layers) %>%
       filter(time >= current_run$gcm_start_date & time <= current_run$gcm_end_date)
-  }) %>% 
-    arrow::write_feather(outfile)
+  })
   
-  return(outfile)
+  return(lake_gcm_data)
 }
 
 #' @title Generate a tibble of information about the output
