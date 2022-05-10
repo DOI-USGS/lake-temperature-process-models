@@ -13,7 +13,7 @@ p1 <- list(
   # file copied from lake-temperature-model-prep repo
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
-  tar_target(lake_centroids_sf_rds, '1_prep/in/centroid_lakes_sf.rds', format='file'),
+  tar_target(p1_lake_centroids_sf_rds, '1_prep/in/centroid_lakes_sf.rds', format='file'),
   # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
   # that are in nml list (able to be modeled by GLM)
   # file copied from lake-temperature-model-prep repo
@@ -38,8 +38,8 @@ p1 <- list(
   tar_target(p1_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
   # Subset lake spatial info to
-  tar_target(lake_centroids_sf,
-             readRDS(lake_centroids_sf_rds) %>%
+  tar_target(p1_lake_centroids_sf,
+             readRDS(p1_lake_centroids_sf_rds) %>%
                arrange(site_id) %>%
                filter(site_id %in% p1_site_ids)),
   
