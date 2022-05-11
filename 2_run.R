@@ -29,8 +29,10 @@ p2 <- list(
     p2_glm_uncalibrated_runs %>%
       select(site_id, gcm, time_period, gcm_start_date, gcm_end_date, 
              export_fl, export_fl_hash, glm_success) %>%
-      group_by(site_id, gcm) %>% 
-      filter(all(glm_success)) %>%
+      group_by(site_id) %>% 
+      filter(all(glm_success)) %>% # Check that all 18 models (3 time periods * 6 GCMs) succeeded for each lake
+      ungroup() %>%
+      group_by(site_id, gcm) %>% # Group by site_id and gcm for creating export files
       tar_group(),
     iteration = "group"
   ),
