@@ -1,6 +1,7 @@
 source('3_extract/src/process_glm_output.R')
 
 p3 <- list(
+  ##### Extract GCM model output #####
   # Use grouped target to combine glm output into feather files
   # Function will generate the output feather file for each lake-gcm combo
   # across all three time periods, truncating the output to the valid dates 
@@ -40,4 +41,7 @@ p3 <- list(
     format = 'file',
     pattern = map(p3_glm_uncalibrated_output_feather_groups)
   )
+  
+  ##### Extract NLDAS model output #####
+  
 )
