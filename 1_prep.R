@@ -105,6 +105,10 @@ p1 <- list(
     p1_nldas_dates,
     munge_nldas_dates(p1_nldas_csvs, p1_nldas_time_period)),
 
+  # Set up NLDAS model config
+  tar_target(p1_nldas_model_config,
+             build_nldas_model_config(p1_site_ids, p1_nml_list_subset, p1_nldas_csvs, p1_nldas_dates)
+  ),
   
   # Set up nmls for NLDAS model runs
   tar_target(p1_nldas_nml_objects,
@@ -112,12 +116,6 @@ p1 <- list(
                               base_nml = p1_glm_template_nml,
                               driver_type = 'nldas'),
              packages = c('glmtools'),
-             iteration = 'list'),
-  
-  
-  # Set up NLDAS model config
-  tar_target(p1_nldas_model_config,
-             build_nldas_model_config(p1_site_ids, p1_nldas_nml_objects, p1_nldas_csvs, p1_nldas_dates)
-  )
+             iteration = 'list')
 )
 
