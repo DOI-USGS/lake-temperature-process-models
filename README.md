@@ -39,15 +39,15 @@ singularity pull docker://jrossusgs/glm3r:v0.7
 ```
 Here's how to build targets using the Singularity container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the Singularity container, with a specified number of workers (up to 72, as Tallgrass has 72 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript`. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 ```R
-srun --pty -c 10 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers=10)'
+srun --pty -c 10 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=10)'
 ```
 
 Here's how to run the Singularity container interactively on an allocated job:
 ```R
-srun --pty -c 10  -A watertemp singularity exec glm3r_v0.7.sif bash
+srun --pty -c 72 -t 10:00:00 -A watertemp singularity exec glm3r_v0.7.sif bash
 R
 library(targets)
-tar_make_clustermq(p2_glm_uncalibrated_runs, workers=79)
+tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=72)
 # etc
 ```
 
