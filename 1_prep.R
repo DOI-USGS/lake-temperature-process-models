@@ -19,8 +19,9 @@ p1 <- list(
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
-               arrange(site_id) %>% #),
-               filter(site_id %in% c('nhdhr_105567868', 'nhdhr_105569506', 'nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))), #   
+               arrange(site_id)), 
+  
+  ##### Define vector of site ids and subset nml list #####
   # Pull vector of site ids
   tar_target(p1_site_ids, p1_lake_cell_tile_xwalk_df %>% pull(site_id)),
   # Subset nml list
@@ -30,6 +31,7 @@ p1 <- list(
   # Define mapping variables
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_time_periods, c('1981_2000', '2040_2059', '2080_2099')),
+  
   # NetCDF files with munged GCM driver data (one per GCM)
   # files copied from lake-temperature-model-prep repo
   tar_target(p1_gcm_ncs, 
@@ -40,7 +42,7 @@ p1 <- list(
              format = 'file',
              pattern = map(p1_gcm_names)),
 
-  # Pull vectors data cell numbers
+  # Pull vectors of data cell numbers
   tar_target(p1_gcm_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
   # Specify length of desired burn-in and burn-out periods, in days
@@ -63,14 +65,13 @@ p1 <- list(
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
 
-  # build model config
+  # Build GCM model config
   tar_target(p1_gcm_model_config,
              build_gcm_model_config(p1_gcm_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
   
   # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes
   # (subset to p1_site_ids), then tell `targets` to think of that list as an iterable list
-  
   tar_target(p1_gcm_nml_objects,
              munge_model_nmls(nml_list = p1_nml_list_subset,
                         base_nml = p1_glm_template_nml,
@@ -79,8 +80,10 @@ p1 <- list(
              iteration = 'list'),
   
   ##### NLDAS model set up #####
+  # Define NLDAS time period
   tar_target(p1_nldas_time_period, c('1980_2021')),
-  # track unique NLDAS files
+  
+  # track unique NLDAS meteo files
   # length(p1_nldas_csvs) = # of unique NLDAS files associated with p1_site_ids
   tar_target(p1_nldas_csvs,
              {
