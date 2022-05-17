@@ -104,7 +104,7 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
           max_output_date <- max(output_dates)
         },
         until=function(val, cnd) glm_code == 0 & max_output_date==sim_stop,
-        max_tries = 5)
+        max_tries = 2)
       
       # make sure glm did succeed  
       if(glm_code != 0 | max_output_date!=sim_stop) stop()
