@@ -2,13 +2,13 @@
 #' temperatures in all lakes for all GCMs
 #' @description Plot the distribution of predicted temperatures
 #' across all lakes, broken out by depth class (surface, middle or bottom),
-#' by time period. The output plot is faceted either by gcm or by month
+#' by time period. The output plot is faceted either by driver (gcm name) or by month
 #' (only even months), as set by `faceting_variable`, and by time period
 #' @param glm_preds Long-formatted temperature predictions for every
 #' lake-gcm combo for which model runs for all 3 time periods succeeded,
 #' filtered to only surface, middle, and bottom depths for each lake
 #' @param faceting_variable variable that will set the columns of the faceted 
-#' plot, either 'gcm' or 'month'. The rows for all plots will be time periods.
+#' plot, either 'driver' or 'month'. The rows for all plots will be time periods.
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
 plot_temp_violin <- function(glm_preds, faceting_variable, outfile) {
@@ -59,14 +59,14 @@ plot_20yr_preds_ice <- function(glm_preds_long, glm_mean_long, all_gcms, outfile
   
   # Pull out ice predictions, and create offset temperature for plotting
   glm_preds_ice <- glm_preds_long %>%
-    select(date, year, doy, period, gcm, ice, depth, temperature) %>%
+    select(date, year, doy, period, driver, ice, depth, temperature) %>%
     filter(depth == 0) %>%
     mutate(temperature = -1) %>% # could use actual surface temp, but artificially set to -1 so doesn't block surface temp pred
     filter(ice ==TRUE) # filter to only days when ice was present in any year/for any gcm
   
   # Get dates when all years (or all years and all GCMs) predicted ice
   glm_preds_ice_mean <- glm_preds_long %>%
-    select(date, year, doy, period, gcm, ice, depth, temperature) %>%
+    select(date, year, doy, period, driver, ice, depth, temperature) %>%
     filter(depth == 0) %>%
     group_by(depth, doy, period) %>%
     summarize(ice_all = ifelse(sum(ice)==n(), TRUE, FALSE), mean_temp = -2) %>% # could use actual surface temp, but artificially set to -2
@@ -86,7 +86,7 @@ plot_20yr_preds_ice <- function(glm_preds_long, glm_mean_long, all_gcms, outfile
   ice_mean_label <- ifelse(all_gcms == TRUE, 'all GCMs ice', 'all years ice')
   plot_title <- ifelse(all_gcms == TRUE, 
                   paste(sprintf("%s", unique(glm_preds_long$site_id)), 'GCM: all', sep='\n'),
-                  paste(sprintf("%s", unique(glm_preds_long$site_id)), sprintf('GCM: %s', unique(glm_preds_long$gcm)), sep='\n'))
+                  paste(sprintf("%s", unique(glm_preds_long$site_id)), sprintf('GCM: %s', unique(glm_preds_long$driver)), sep='\n'))
   doy_plot <- ggplot()+
     geom_line(data=glm_preds_plot, aes(x=doy, y=temperature, color='a_gcm_glm'), size=0.5, alpha=0.2, linetype='solid') +
     geom_line(data=glm_mean_plot, aes(x=doy, y=mean_temp, color="b_gcm_glm_mean"), size=0.5, alpha=1, linetype='solid') +
@@ -110,7 +110,7 @@ plot_20yr_preds_ice <- function(glm_preds_long, glm_mean_long, all_gcms, outfile
   # Save plot
   outfile <- ifelse(all_gcms == TRUE, 
          sprintf(outfile_template, unique(glm_preds_long$site_id)),
-         sprintf(outfile_template, unique(glm_preds_long$site_id), unique(glm_preds_long$gcm)))
+         sprintf(outfile_template, unique(glm_preds_long$site_id), unique(glm_preds_long$driver)))
   
   ggsave(filename=outfile, plot=doy_plot, dpi=300, width=10, height=6)
   return(outfile)
@@ -146,7 +146,7 @@ plot_20yr_average_profiles <- function(site_id, glm_preds_long, glm_mean_long, p
 
   # build plot  
   doy_plot <- ggplot()+
-    geom_point(data= glm_preds_plot, aes(x=temperature, y=depth, color='a_gcm_glm'), size=0.5, alpha=0.17) + #line=gcm, 
+    geom_point(data= glm_preds_plot, aes(x=temperature, y=depth, color='a_gcm_glm'), size=0.5, alpha=0.17) + 
     geom_point(data=glm_mean_plot, aes(x=mean_temp, y=depth, color="b_gcm_glm_mean"), size=1, alpha=1) +
     scale_y_reverse(lim=c(max(glm_mean_plot$depth),0)) +
     scale_color_manual(values = c("cornflowerblue","midnightblue"), labels = c('GLM preds','mean of GLM preds'), guide= guide_legend(override.aes = list(alpha = c(0.17,1), size=c(0.5,1)))) +

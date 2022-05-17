@@ -31,19 +31,19 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
 }
 
 #' @title run glm3 simulation
-#' @description For each lake - gcm - time period combo, write the nml
+#' @description For each lake - driver - time period combo, write the nml
 #' file, the meteo data, and run the glm3 model. If the model run is
 #' successful, the results are extracted and saved to '2_run/tmp' using
 #' `extract_glm_ouput()` and then the simulation directory is deleted 
 #' @param sim_dir base directory for simulations
 #' @param nml_obj nml object for the current lake
-#' @param model_config a lake-gcm-time_period crosswalk table with one 
-#' row per model run and columns for site_id, state, gcm, time_period, 
-#' gcm_start_date, gcm_end_date, burn_in, burn_in_start, burn_out, 
+#' @param model_config a model configuration table with one 
+#' row per model run and columns for site_id, state, driver, time_period, 
+#' driver_start_date, driver_end_date, burn_in, burn_in_start, burn_out, 
 #' burn_out_end, meteo_fl, and meteo_fl_hash
 #' @param export_fl_template the template for constructing the filepath 
 #' for the export feather file that will be saved in `extract_glm_ouput()`
-#' @return a tibble which includes the run_date, site_id, gcm, time_period, 
+#' @return a tibble which includes the run_date, site_id, driver, time_period, 
 #' the name of the export feather file, its hash (NA if the model run failed), 
 #' the duration of the model run, whether or not the model run succeeded, 
 #' and the code returned by the call to GLM3r::run_glm(). 
@@ -51,11 +51,11 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
   # pull parameters from model_config
   site_id <- model_config$site_id
   time_period <- model_config$time_period
-  gcm <- model_config$gcm
+  driver <- model_config$driver
   raw_meteo_fl <- model_config$meteo_fl
   
   # prepare to write inputs and results locally for quick I/O
-  sim_lake_dir <- file.path(sim_dir, sprintf('%s_%s_%s', site_id, gcm, time_period))
+  sim_lake_dir <- file.path(sim_dir, sprintf('%s_%s_%s', site_id, driver, time_period))
   dir.create(sim_lake_dir, recursive=TRUE, showWarnings=FALSE)
   
   # copy meteo data to sim_lake_dir
@@ -69,7 +69,7 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
   # write nml file, specifying meteo file and start and stop dates:
   nml_obj <- set_nml(nml_obj, arg_list = list(nsave = 24, 
                                               meteo_fl = sim_meteo_filename,
-                                              sim_name = sprintf('%s_%s_%s', site_id, gcm, time_period),
+                                              sim_name = sprintf('%s_%s_%s', site_id, driver, time_period),
                                               start = sim_start,
                                               stop = sim_stop))
   glmtools::write_nml(nml_obj, file.path(sim_lake_dir, 'glm3.nml'))
@@ -110,7 +110,7 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
       if(glm_code != 0 | max_output_date!=sim_stop) stop()
       
       # extract output
-      export_fl <- sprintf(export_fl_template, site_id, gcm, time_period)
+      export_fl <- sprintf(export_fl_template, site_id, driver, time_period)
       extraction_error <- tryCatch(
         {
           extract_glm_output(nc_filepath, nml_obj, export_fl)
@@ -137,11 +137,11 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
       # Build export tibble with export file, its hash, and glm run information
       export_tibble <- tibble(
         site_id = site_id,
-        gcm = gcm,
+        driver = driver,
         time_period = time_period,
         raw_meteo_fl = raw_meteo_fl,
-        gcm_start_date = model_config$gcm_start_date,
-        gcm_end_date = model_config$gcm_end_date,
+        driver_start_date = model_config$driver_start_date,
+        driver_end_date = model_config$driver_end_date,
         burn_in = model_config$burn_in,
         burn_out = model_config$burn_out,
         export_fl = export_fl,
@@ -163,11 +163,11 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
       # to make sure previously exported files aren't tracked
       export_tibble <- tibble(
         site_id = site_id,
-        gcm = gcm,
+        driver = driver,
         time_period = time_period,
         raw_meteo_fl = raw_meteo_fl,
-        gcm_start_date = model_config$gcm_start_date,
-        gcm_end_date = model_config$gcm_end_date,
+        driver_start_date = model_config$driver_start_date,
+        driver_end_date = model_config$driver_end_date,
         burn_in = model_config$burn_in,
         burn_out = model_config$burn_out,
         export_fl = NA,
