@@ -2,9 +2,13 @@
 
 This repository is for running uncalibrated GLM models of lake temperatures.
 
-|                                                                                                                                                                                    |
-|-------------------|
-| \## Dependent files from [`lake-temperature-model-prep pipeline`](https://github.com/USGS-R/lake-temperature-model-prep) *Files that will eventually be transferred using GLOBUS:* |
+-------------------
+# Dependent files from [`lake-temperature-model-prep pipeline`](https://github.com/USGS-R/lake-temperature-model-prep) 
+*Files that will eventually be transferred using GLOBUS:*
+* Lake - GCM cell tile crosswalk: '1_prep/in/lake_cell_tile_xwalk.csv'
+  * Created within the [targets sub-pipeline](https://github.com/USGS-R/lake-temperature-model-prep/blob/main/_targets.R), look for the lake_cell_tile_xwalk_df target
+* List of lake-specific attributes for nml modification: '1_prep/in/nml_list.rds'
+* Munged GCM netCDF files (one per GCM)
 
 ## Running the pipeline on HPC, in parallel
 
@@ -37,23 +41,21 @@ singularity pull docker://jrossusgs/glm3r:v0.7
 # now you can see the singularity image: it is a file called glm3r_v0.7.sif
 ```
 
-### Running the pipeline in the Singularity container
+**Running the pipeline in the Singularity container**
 
 Here's how to build targets using the Singularity container and the `targets::tar_make_clustermq(target_name, workers=n_workers)` option to build targets in parallel within the Singularity container, with a specified number of workers (up to 72, as Tallgrass has 72 cores per node). The `srun` command will allocate a node and then run the specified command, in this case `Rscript`. Targets will then delegate work out to `n_workers` cores for any parallelizable step that you don't specifically tell it to run in serial.
 
-##### Building the GCM-driven GLM models, in parallel
-
 ``` r
+# Build GCM-driven GLM models, in parallel
 srun --pty -c 72 -t 7:00:00 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=60)'
 ```
 
-##### Building the NLDAS-driven GLM models
-
 ``` r
+# Build NLDAS-driven GLM models, in parallel
 srun --pty -c 72 -t 1:00:00 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_nldas_glm_uncalibrated_runs, workers=60)'
 ```
 
-#### Running the pipeline interactively
+**Running the pipeline interactively**
 
 Here's how to run the Singularity container interactively on an allocated job:
 
@@ -65,7 +67,7 @@ tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=72)
 # etc
 ```
 
-#### Editing the pipeline in RStudio on Tallgrass
+**Editing the pipeline in RStudio on Tallgrass**
 
 You can also get an interactive RStudio on tallgrass. The best documentation for this is currently [here](https://code.usgs.gov/wma/wp/pump-temperature#running-interactive-sessions-on-hpc). The tl;dr is
 
@@ -78,7 +80,7 @@ squeue -u jross
 cat tmp/rstudio_jross.out
 ```
 
-##### Caution
+**_Caution_**
 
 RStudio may not be as good an environment for running parallelized targets pipelines as running them through `Rscript -e`. The [clustermq user guide](https://cran.r-project.org/web/packages/clustermq/vignettes/userguide.html) says that the `multicore` scheduler sometimes causes problems in RStudio. I haven't run into this, but if it happens, you might need to switch to `multiprocess`. This uses more RAM. Might not be a problem, just something to be aware of!
 
@@ -126,5 +128,5 @@ docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787
 ``` r
 setwd("/lakes") 
 # Do a lot of work at once and test your computer's fan
-targets::tar_make_clustermq(p2_glm_uncalibrated_runs, workers = 32)
+targets::tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers = 32)
 ```
