@@ -72,6 +72,69 @@ tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=72)
 # etc
 ```
 
+**Example interactive workflow that launches model runs on Tallgrass**
+
+In git bash window:
+```bash
+[hcorson-dosch@tg-login1 ~] ssh tallgrass.cr.usgs.gov
+[hcorson-dosch@tg-login1 ~] cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/lake-temperature-process-models
+[hcorson-dosch@tg-login1 lake-temperature-process-models] umask 002
+[hcorson-dosch@tg-login1 lake-temperature-process-models] screen # set up screen so that if lose Pulse Secure connection, run continues
+[hcorson-dosch@tg-login1 lake-temperature-process-models] module load singularity slurm
+[hcorson-dosch@tg-login1 lake-temperature-process-models] srun --pty -c 72 -t 10:00:00 -A watertemp singularity exec glm3r_v0.7.sif bash # Here I'm requesting 72 cores (1 node) for 10 hours
+```
+Once the resources have been allocated, you'll immediately be transferred to the allocated node, and will be in the container environment.
+
+To access R, simply type `R`:
+
+```bash
+hcorson-dosch@ml-0008:/caldera/projects/usgs/water/iidd/datasci/lake-temp/lake-temperature-process-models$ R
+
+R version 4.1.2 (2021-11-01) -- "Bird Hippie"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+>
+```
+Once in R, you could immediately launch the model runs (here, the NLDAS model runs):
+```r
+> library(targets) # load targets
+> tar_make_clustermq(p3_nldas_glm_uncalibrated_output_zips, reporter='summary', workers=60) # To run the NLDAS models and extract and package the output
+```
+Or build other targets (e.g., the model configuration) before launching the model runs (here, the GCM model runs):
+```r
+> library(targets)
+> tar_make_clustermq(p1_gcm_model_config, reporter='summary', workers=60) # Typically I build the config first so that I can check it before launching the model run - here I'm building the GCM model config
+> tar_load(p1_gcm_model_config)
+> tar_load(p1_site_ids)
+> nrow(p1_gcm_model_config) == (length(p1_site_ids)*6*3) # Check # of model runs is correct, for GCMs thats # lakes * 6 gcms * 3 time periods
+> Sys.time() # I find it helpful to have a console record of the time when I launch a run
+> tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, reporter='summary', workers=60) # To launch just the model runs
+> tar_make_clustermq(p3_gcm_glm_uncalibrated_output_zips, reporter='summary', workers=60) # To launch the GCM model runs *and* extract and package the output
+> library(tidyverse)
+> tar_load(p2_gcm_glm_uncalibrated_runs)
+> nrow(filter(p2_gcm_glm_uncalibrated_runs, glm_success==FALSE)) # check how many runs failed
+> failed_runs <- p2_gcm_glm_uncalibrated_runs %>% filter(glm_success==FALSE) %>% group_by(site_id) %>% summarize(n_failed_runs = n()) # get summary of # of failed runs per lake
+> nrow(failed_runs) # check how many lakes had failed runs
+> tar_load(p2_gcm_glm_uncalibrated_run_groups) 
+> length(unique(p2_gcm_glm_uncalibrated_run_groups$site_id)) # check for how many lakes all 18 runs (6 GCMs * 3 time periods) succeeded and therefore for how many lakes results will be extracted in 3_extract
+```
+_Note: I've been using `workers=60` in my `tar_make_clustermq()` command despite having an allocated node with 72 cores because I noticed when calling `tar_make_clustermq()` with `workers=72` that the pipeline would hit an error, with warnings about 'unclean shutdown for PIDs #####', particularly when building the output feather files. It seems to runs more smoothly if you run `tar_make_clustermq()` with fewer workers than the number of available cores._
+
 **Editing the pipeline in RStudio on Tallgrass**
 
 You can also get an interactive RStudio on tallgrass. The best documentation for this is currently [here](https://code.usgs.gov/wma/wp/pump-temperature#running-interactive-sessions-on-hpc). The tl;dr is
