@@ -84,7 +84,7 @@ p2 <- list(
     p2_nldas_glm_uncalibrated_runs %>%
       select(site_id, driver, time_period, driver_start_date, driver_end_date, 
              export_fl, export_fl_hash, glm_success) %>% 
-      filter(glm_success==TRUE) %>%
+      filter(glm_success) %>%
       group_by(site_id) %>% # Group by site_id for creating export files
       tar_group(),
     iteration = "group"

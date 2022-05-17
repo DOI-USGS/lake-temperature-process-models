@@ -21,7 +21,7 @@ adjust_depth_args_nml <- function(nml_args) {
   return(nml_edits)
 }
 
-#' @Title Munge default nml lists for NLDAS runs
+#' @Title Munge default nml lists for NLDAS & GCM runs
 #' @decription Customize glm3 template nml using the values
 #' in p1_nml_list, remove used nml parameter 'site_id'
 #' @param nml_list nested list of lake-specific nml parameters
@@ -36,7 +36,7 @@ munge_model_nmls <- function(nml_list, base_nml, driver_type) {
     # make edits to nml depth-related parameters
     nml <- purrr::list_modify(nml, !!!adjust_depth_args_nml(nml))
     # If the nml will note be used for a NLDAS-driven model run
-    if (!(driver_type=='nldas')) {
+    if (driver_type!='nldas') {
       # set meteo_fl value to NULL
       nml <- purrr::list_modify(nml, !!!c('meteo_fl' = 'NULL'))
     }
