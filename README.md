@@ -133,7 +133,7 @@ Or build other targets (e.g., the model configuration) before launching the mode
 > tar_load(p2_gcm_glm_uncalibrated_run_groups) 
 > length(unique(p2_gcm_glm_uncalibrated_run_groups$site_id)) # check for how many lakes all 18 runs (6 GCMs * 3 time periods) succeeded and therefore for how many lakes results will be extracted in 3_extract
 ```
-_Note: I've been using `workers=60` in my `tar_make_clustermq()` command despite having an allocated node with 72 cores because I noticed when calling `tar_make_clustermq()` with `workers=72` that the pipeline would hit an error: `Error in tar_throw_run(target$metrics$error) : Resource temporarily unavailable`, with warnings about 'unclean shutdown for PIDs', particularly when building the output feather files. It seems to runs more smoothly if you run `tar_make_clustermq()` with fewer workers than the number of available cores. For generating the output files I had to drop it to `workers = 50`._
+_Note: I've been using a number of `workers` < 72 in my `tar_make_clustermq()` command (despite having an allocated node with 72 cores) because I noticed when calling `tar_make_clustermq()` with `workers=72` that the pipeline would sometimes hit an error: `Error in tar_throw_run(target$metrics$error) : Resource temporarily unavailable`, with warnings about 'unclean shutdown for PIDs', particularly when building the output feather files. It seems to runs more smoothly if you run `tar_make_clustermq()` with fewer workers than the number of available cores. For generating the output files I had to drop it to `workers = 50`._
 
 **Editing the pipeline in RStudio on Tallgrass**
 
