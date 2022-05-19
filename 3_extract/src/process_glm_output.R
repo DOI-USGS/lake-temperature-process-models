@@ -3,26 +3,24 @@
 #' GLM runs using GCM or NLDAS drivers, remove the ice thickness, 
 #' evaporation, and n_layers variables (leaving the temperature 
 #' predictions and ice flags), filter that output to exclude the
-#' burn-in and burn-out periods, and save the result as a single 
-#' feather file
+#' burn-in and burn-out periods, and return the result as a single 
+#' tibble
 #' @param run_group a single group of successful model runs. If the
 #' passed runs are GCM runs, this group includes all runs for a lake-gcm combo
 #' (nrows = 3). If the passed runs are NLDAS runs, this group includes all
 #' runs for a given lake (nrows = 1). The function maps over these groups.
 #' @param outfile_template the template for the name of the
 #' final output feather file
-#' @return a single feather file with the output temperature predictions
+#' @return a single tibble with the output temperature predictions
 #' and ice flags for that lake-gcm combo (if GCM runs) or lake (if NLDAS runs), 
 #' filtered to the valid dates (excluding burn-in/out from each time period)
-write_glm_output <- function(run_group, outfile_template) {
-  # set filename
-  outfile <- sprintf(outfile_template, unique(run_group$site_id), unique(run_group$driver))
-  
-  # combine into single feather file and write,
+combine_glm_output <- function(run_group, outfile_template) {
+
+  # combine into single tibble,
   # saving only the temperature predictions and ice flags, and
   # truncating output for each time period to valid dates
   # (excluding burn-in and burn-out periods)
-  purrr::pmap_df(run_group, function(...) {
+  glm_output <- purrr::pmap_df(run_group, function(...) {
     current_run <- tibble(...)
     # read in data for that time period, remove the ice
     # thickness, evaporation, and n_layers variables, and truncate
@@ -30,10 +28,9 @@ write_glm_output <- function(run_group, outfile_template) {
     arrow::read_feather(current_run$export_fl) %>%
       select(-hice, -evap, -n_layers) %>%
       filter(time >= current_run$driver_start_date & time <= current_run$driver_end_date)
-  }) %>% 
-    arrow::write_feather(outfile)
+  })
   
-  return(outfile)
+  return(glm_output)
 }
 
 #' @title Generate a tibble of information about the output
