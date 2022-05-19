@@ -6,7 +6,7 @@ p5 <- list(
   
   ##### Evaluate NLDAS model output #####
   
-  ### Prep predictions and observations
+  ###### Prep predictions and observations ######
   
   # Get NLDAS preds in long format
   # As-is, model results are read in by `write_glm_output()` in the `3_extract` step
@@ -86,7 +86,7 @@ p5 <- list(
              get_grouping_vars(p5_nldas_pred_obs_diff_surface) # Add fields for year, doy, season, temp_bin
              ),
   
-  ### BIAS TARGETS
+  ###### Assess model bias ######
   
   # Bias through time - year
   tar_target(p5_nldas_surface_bias_year,
@@ -118,7 +118,7 @@ p5 <- list(
   
   # Bar plot of bias for 2-degree temperature bins
   
-  ### ACCURACY targets
+  ###### Assess model accuracy ######
   
   # Accuracy through time - year
   tar_target(p5_nldas_surface_accuracy_year,
