@@ -21,7 +21,7 @@ p1 <- list(
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
                arrange(site_id) %>% #),
-               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))),
+               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097'))), #, 'nhdhr_120019185','nhdhr_114544667'
   
   ##### Define vector of site ids and subset nml list #####
   # Pull vector of site ids
@@ -33,7 +33,7 @@ p1 <- list(
   # Define mapping variables
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_time_periods, c('1981_2000', '2040_2059', '2080_2099')),
-  
+
   # NetCDF files with munged GCM driver data (one per GCM)
   # files copied from lake-temperature-model-prep repo
   tar_target(p1_gcm_ncs, 

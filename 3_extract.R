@@ -17,7 +17,7 @@ p3 <- list(
     {
       outfile <- sprintf('3_extract/out/GLM_%s_%s.feather', 
                          unique(p2_gcm_glm_uncalibrated_run_groups$site_id), 
-                         unique(p2_gcm_glm_uncalibrated_run_groups$gcm))
+                         unique(p2_gcm_glm_uncalibrated_run_groups$driver))
       arrow::write_feather(p3_gcm_glm_uncalibrated_output, outfile)
       return(outfile)
     },
@@ -47,42 +47,42 @@ p3 <- list(
   # Makes sense to work off ^ or similar tibble so can track hash of output data
   # Could work with raw feather output or ^ output feathers, which are just temp and ice
   # Setup table of GLM variable definitions to use in NetCDF file metadata
-  tar_target(p3_export_site_ids,
-             p3_glm_uncalibrated_output_feather_tibble %>%
+  tar_target(p3_gcm_export_site_ids,
+             p3_gcm_glm_uncalibrated_output_feather_tibble %>%
                pull(site_id) %>%
                unique()),
-  tar_target(p3_site_coords,
+  tar_target(p3_gcm_site_coords,
              # Get WGS84 latitude and longitude of lake centroids
              p1_lake_centroids_sf %>%
-               filter(site_id %in% p3_export_site_ids) %>%
+               filter(site_id %in% p3_gcm_export_site_ids) %>%
                mutate(lon = sf::st_coordinates(.)[,1], lat = sf::st_coordinates(.)[,2]) %>%
                sf::st_set_geometry(NULL) %>%
                arrange(site_id)),
   tar_target(p3_nc_var_info,
              tibble(
-               var_name = c("temp"),
-               longname = c("Surface water temperature [°C]"),
-               units = c("degrees Celcius"),
-               data_precision = c('float'),
-               compression_precision = c('.2')
+               var_name = c("temp","ice"),
+               longname = c("Surface water temperature [°C]","Boolean indicating presence of ice"),
+               units = c("degrees Celcius",""),
+               data_precision = c('float','integer'),
+               compression_precision = c('.2','1')
              )),
   tar_target(
-    p3_glm_uncalibrated_output_long,
-    p3_glm_uncalibrated_output %>%
+    p3_gcm_glm_uncalibrated_output_long,
+    p3_gcm_glm_uncalibrated_output %>%
       pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
       mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
-      mutate(site_id = p3_glm_uncalibrated_output_feather_tibble$site_id,
-             gcm = p3_glm_uncalibrated_output_feather_tibble$gcm, .before=1),
-    pattern = map(p3_glm_uncalibrated_output, p3_glm_uncalibrated_output_feather_tibble)
+      mutate(site_id = p3_gcm_glm_uncalibrated_output_feather_tibble$site_id,
+             driver = p3_gcm_glm_uncalibrated_output_feather_tibble$driver, .before=1),
+    pattern = map(p3_gcm_glm_uncalibrated_output, p3_gcm_glm_uncalibrated_output_feather_tibble)
   ),
   tar_target(
-    p3_glm_uncalibrated_nc,
+    p3_gcm_glm_uncalibrated_nc,
     generate_output_nc(
-      nc_file = '3_extract/out/GLM_projections.nc', 
-      lake_gcm_info = p3_glm_uncalibrated_output_feather_tibble,
-      lake_gcm_output = p3_glm_uncalibrated_output_long, 
+      nc_file = '3_extract/out/GLM_GCMs.nc', 
+      lake_gcm_info = p3_gcm_glm_uncalibrated_output_feather_tibble,
+      lake_gcm_output = p3_gcm_glm_uncalibrated_output_long, 
       nc_var_info = p3_nc_var_info,
-      site_coords = p3_site_coords, 
+      site_coords = p3_gcm_site_coords, 
       compression = FALSE),
     format = 'file'
   ),
