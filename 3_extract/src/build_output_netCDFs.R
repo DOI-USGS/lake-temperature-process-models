@@ -26,9 +26,8 @@ add_var <- function(nc, name, dim, type, units = NA, missing = NA, long_name = N
 #' @description Create a single NetCDF file containing temperature predictions at all depths in
 #' each lake, across all time periods, for each GCM, as well as ice flag predictions for each GCM.
 #' @param nc_file netcdf outfile name
-#' @param lake_gcm_output a tibble with a row for each GLM output file (lake-gcm specific, containing
-#' predictions for all 3 time periods) that includes the filename and its hash along with the site_id,
-#' driver (gcm_name), the state the lake is in, and the data and spatial cell_no and tile_no for that lake.
+#' @param lake_gcm_output a long format tibble of predicted temperatures and ice flags for all 
+#' lakes and all GCMs, with columns for site_id, driver (gcm_name), time, ice, depth, and temperature
 #' @param nc_var_info variables and descriptions to store in NetCDF
 #' @param site_coords WGS84 coordinates of lake centroids
 #' @param compression T/F if the nc file should be compressed after creation
@@ -58,17 +57,6 @@ generate_output_nc <- function(nc_file, lake_gcm_info, lake_gcm_output, nc_var_i
     nc_file <- str_replace(nc_file, pattern = '.nc', '_uncompressed.nc')
     if (file.exists(nc_file)) unlink(nc_file)
   }
-  
-  ### CODE TO LOAD DATA AND GET IN RIGHT SHAPE
-  # Read in surface temperature predictions for each lake-gcm combo
-  # temp_ice_data <- purrr::pmap_dfr(lake_gcm_output, function(...) {
-  #   current_lake_gcm <- tibble(...)
-  #   arrow::read_feather(current_lake_gcm$export_fl) %>%
-  #     pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
-  #     mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
-  #     mutate(site_id = current_lake_gcm$site_id,
-  #            driver = current_lake_gcm$driver, .before=1)
-  # }) %>% arrange(site_id)
   
   ice_data <- lake_gcm_output %>%
     filter(depth == 0) %>%
@@ -162,10 +150,6 @@ generate_output_nc <- function(nc_file, lake_gcm_info, lake_gcm_output, nc_var_i
   # For now, only add dim for depth (3D netCDF)
   nc <- RNetCDF::open.nc(nc_file, write=TRUE)
   
-  temp_metadata <- nc_var_info %>% filter(var_name=='temp')
-  temp_data_unit <- rep(temp_metadata$units, length(site_ids))
-  temp_data_prec <- temp_metadata$data_precision
-  temp_data_metadata <- list(name = temp_metadata$var_name, long_name = temp_metadata$longname)
   
   # Add dimension for depth
   all_depths <- unique(temp_data$depth)
@@ -174,6 +158,13 @@ generate_output_nc <- function(nc_file, lake_gcm_info, lake_gcm_output, nc_var_i
 
   # Define depth dimension - type: float, units of meters
   
+  # Set up temp var metadata
+  temp_metadata <- nc_var_info %>% filter(var_name=='temp')
+  temp_data_unit <- rep(temp_metadata$units, length(site_ids))
+  temp_data_prec <- temp_metadata$data_precision
+  temp_data_metadata <- list(name = temp_metadata$var_name, long_name = temp_metadata$longname)
+  
+  # Add temp data for all depths for 1 GCM
   
   # # Add dimension for GCMs
   # drivers <- unique(lake_gcm_info$driver)
