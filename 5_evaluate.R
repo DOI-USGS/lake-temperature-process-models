@@ -22,20 +22,16 @@ p5 <- list(
     pattern = map(p3_nldas_glm_uncalibrated_output, p2_nldas_glm_uncalibrated_run_groups)
   ),
   
-  # load site observations
-  # Bring in `7b_temp_merge/out/merged_temp_data_daily.feather` from `lake-temperature-model-prep`
-  # (would be target in 1_prep.R)
-  tar_target(p5_obs),
-  
-  # Filter obs to sites for which we have NLDAS output
-  # Use https://github.com/USGS-R/mntoha-data-release/blob/main/src/file_utils.R#L441-L446
-  # Passing `driver_start_date` and `driver_end_date` from `p1_nldas_dates` 
-  tar_target(p5_filtered_obs),
-  
-  # Subset obs to those for sites w/ >= 10 dates with observations
-  # Use https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L4-L11
+  # Prep site observations
+  ### Bring in `7b_temp_merge/out/merged_temp_data_daily.feather` from `lake-temperature-model-prep`
+  ### (would be target in 1_prep.R)
+  # filter obs to sites for which we have NLDAS output
+  ### Use https://github.com/USGS-R/mntoha-data-release/blob/main/src/file_utils.R#L441-L446
+  ### Passing `driver_start_date` and `driver_end_date` from `p1_nldas_dates`
+  # And subset obs to those for sites w/ >= 10 dates with observations
+  ### Use https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L4-L11
   tar_target(p5_obs_for_eval,
-             filter_min_dates(p5_filtered_obs, min_dates = 10)),
+             get_eval_obs(p1_obs_temps, min_dates = 10)),
   
   # Get vector of evaluation sites
   tar_target(p5_eval_sites,
@@ -75,34 +71,32 @@ p5 <- list(
   # Write matched predictions to file
   tar_target(p5_nldas_pred_obs_csv),
   
-  # Add pred_diff column (pred - obs) to matched obs-preds
-  tar_target(p5_nldas_pred_obs_diff),
-  
+  # Prep matched preds for evaluation
+  # Add pred_diff column (pred - obs)
   # Filter matched obs-preds w/ pred_diff to surface obs-preds
-  tar_target(p5_nldas_pred_obs_diff_surface),
-  
   # Set up variables for which bias/accuracy will be calculated
-  tar_target(p5_nldas_pred_obs_diff_surface_vars,
-             get_grouping_vars(p5_nldas_pred_obs_diff_surface) # Add fields for year, doy, season, temp_bin
+  # Add fields for year, doy, season, temp_bin
+  tar_target(p5_nldas_pred_obs_surface_eval,
+             prep_data_for_eval(p5_nldas_pred_obs) 
              ),
   
   ###### Assess model bias ######
   
   # Bias through time - year
   tar_target(p5_nldas_surface_bias_year,
-             calc_bias(p5_nldas_pred_obs_diff_surface_vars, grouping_var = 'year')),
+             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'year')),
   
   # Bias through time - doy
   tar_target(p5_nldas_surface_bias_doy,
-             calc_bias(p5_nldas_pred_obs_diff_surface_vars, grouping_var = 'doy')),
+             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'doy')),
   
   # Bias by season
   tar_target(p5_nldas_surface_bias_season,
-             calc_bias(p5_nldas_pred_obs_diff_surface_vars, grouping_var = 'season')),
+             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'season')),
   
   # Bias for specific temperature ranges
   tar_target(p5_nldas_surface_bias_temp,
-             calc_bias(p5_nldas_pred_obs_diff_surface_vars, grouping_var = 'temp_bin')),
+             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'temp_bin')),
   
   ## Plots
   # Bar plot of bias through time, by  year
@@ -122,7 +116,7 @@ p5 <- list(
   
   # Accuracy through time - year
   tar_target(p5_nldas_surface_accuracy_year,
-             calc_rmse(p5_nldas_pred_obs_diff_surface_vars, grouping_var = 'year')),
+             calc_rmse(p5_nldas_pred_obs_surface_eval, grouping_var = 'year')),
   
   # Accuracy through time - doy
   
