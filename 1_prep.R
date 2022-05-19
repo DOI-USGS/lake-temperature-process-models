@@ -12,6 +12,8 @@ p1 <- list(
   # file copied from lake-temperature-model-prep repo
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
+  # Temperture observations `7b_temp_merge/out/merged_temp_data_daily.feather`
+  tar_target(p1_obs_feather, '1_prep/in/merged_temp_data_daily.feather', format = 'file'),
   # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
   # that are in nml list (able to be modeled by GLM)
   # file copied from lake-temperature-model-prep repo
@@ -19,7 +21,7 @@ p1 <- list(
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
-               arrange(site_id)), 
+               arrange(site_id)),
   
   ##### Define vector of site ids and subset nml list #####
   # Pull vector of site ids
