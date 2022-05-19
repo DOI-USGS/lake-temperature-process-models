@@ -4,7 +4,7 @@
 #' or predictions for all GCMS for a single lake.
 #' @result_group a single group of model runs for which to load results
 #' @return A munged dataframe of GLM predictions that includes columns for date, month, 
-#' year, DOY, time period, gcm, ice, hice (ice thickness), evap (evaporation),
+#' year, DOY, time period, driver (gcm name), ice, hice (ice thickness), evap (evaporation),
 #' n_layers (number of simulated layers), and temperature predictions at 0.5-meter intervals
 get_site_preds <- function(result_group) {
   
@@ -13,8 +13,8 @@ get_site_preds <- function(result_group) {
     # read in data for that time period and truncate the
     # predictions based on the defined start and end dates
     arrow::read_feather(current_results$export_fl) %>%
-      filter(time >= current_results$gcm_start_date & time <= current_results$gcm_end_date) %>%
-      mutate(gcm = current_results$gcm, time_period = current_results$time_period)
+      filter(time >= current_results$driver_start_date & time <= current_results$driver_end_date) %>%
+      mutate(driver = current_results$driver, time_period = current_results$time_period)
   }) %>%  
     mutate(site_id = unique(result_group$site_id), date = as.Date(time)) %>%
     select(-time) %>%
@@ -23,7 +23,7 @@ get_site_preds <- function(result_group) {
            doy = yday(date),
            period = gsub('_',' - ', time_period),
            .after=date) %>%
-    select(site_id, date, month, year, doy, period, gcm, ice, hice, evap, n_layers, everything())
+    select(site_id, date, month, year, doy, period, driver, ice, hice, evap, n_layers, everything())
   
   return(site_preds)
 }
@@ -31,14 +31,15 @@ get_site_preds <- function(result_group) {
 #' @title Get surface, middle, and bottom GLM predictions for all lakes
 #' @description Function to pull and combine GLM predictions for all lakes,
 #' across all 3 simulation periods and all 6 GCMs
-#' @param run_groups The `p2_glm_uncalibrated_run_groups` grouped version 
-#' of the `p2_glm_uncalibrated_runs` output tibble subset to the site_id, 
-#' gcm, time_period, raw_meteo_fl, export_fl, and export_fl_hash columns 
-#' and grouped by site_id and gcm. Then filtered to only groups for which 
-#' glm_success==TRUE for all runs in that group.
+#' @param run_groups The `p2_gcm_glm_uncalibrated_run_groups` grouped version 
+#' of the `p2_gcm_glm_uncalibrated_runs` output tibble subset to the site_id, 
+#' driver (gcm name), time_period, raw_meteo_fl, export_fl, and export_fl_hash columns 
+#' and grouped by site_id. Then filtered to only groups for which 
+#' glm_success==TRUE for all runs in that group (n=18). Then regrouped by
+#' site_id and driver (gcm name)
 #' @return A munged dataframe of surface, middle, and bottom temperature GLM
 #' predictions for all successfully simulated lakes. The munge table includes 
-#' the columns site_id, gcm, date, month, year DOY, time period, gcm, 
+#' the columns site_id, driver, date, month, year DOY, time period, 
 #' ice, hice (ice thickness), evap (evaporation), n_layers (number of simulated 
 #' layers), depth_class (surface, middle, or bottom), depth, and temperature 
 get_surface_middle_bottom_preds <- function(run_groups) {
