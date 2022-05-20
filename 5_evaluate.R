@@ -32,27 +32,20 @@ p5 <- list(
              iteration = "group"),
   
   # Prep NLDAS predictions
-  # Get NLDAS predictions in long format
-  tar_target(
-    p5_nldas_preds_long,
-    munge_long(p3_nldas_glm_uncalibrated_output) %>%
-      mutate(site_id = p2_nldas_glm_uncalibrated_run_groups$site_id, .before=1) %>%
-      select(-ice),
-    pattern = map(p3_nldas_glm_uncalibrated_output, p2_nldas_glm_uncalibrated_run_groups)
-  ),
-  
-  # Filter long-format NLDAS preds to only evaluation sites
+  # For sites that are evaluation sites,
+  # get NLDAS predictions in long format
+  # This is faster than munging all NLDAS output to long format
+  # and then filtering to site_ids in p5_eval_sites
   tar_target(
     p5_nldas_preds_eval,
     {
-      nldas_preds <- p5_nldas_preds_long %>%
-        setDT() %>%
-        setkey(site_id)
-      nldas_preds_eval <- nldas_preds[p5_eval_sites]
-    }
-    # OLD CODE - WAS HANGING ON TALLGRASS
-    # p5_nldas_preds_long %>%
-    #   filter(site_id %in% p5_eval_sites)
+      if (p2_nldas_glm_uncalibrated_run_groups$site_id %in% p5_eval_sites) {
+        munge_long(p3_nldas_glm_uncalibrated_output) %>%
+          mutate(site_id = p2_nldas_glm_uncalibrated_run_groups$site_id, .before=1) %>%
+          select(-ice)
+      }
+    },
+    pattern = map(p3_nldas_glm_uncalibrated_output, p2_nldas_glm_uncalibrated_run_groups)
   ),
   
   # Group filtered NLDAS preds by site, set up tar_group()
