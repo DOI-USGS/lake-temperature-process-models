@@ -40,8 +40,9 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
 match_pred_obs <- function(eval_obs, eval_preds) {
   # Filter model predictions to those on dates with obercations
   eval_preds <- eval_preds %>%
-    mutate(depth = as.numeric(depth)) %>% 
     filter(time %in% eval_obs$time) %>%
+    munge_long() %>% # Fxn in 4_visualize/src/plot_data_utility_fxns.R
+    mutate(depth = as.numeric(depth)) %>% 
     rename(pred = temperature)
   
   eval_obs <- eval_obs %>%

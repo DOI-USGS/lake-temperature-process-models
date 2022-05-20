@@ -39,13 +39,12 @@ p5 <- list(
   tar_target(
     p5_nldas_preds_eval,
     {
-      if (p2_nldas_glm_uncalibrated_run_groups$site_id %in% p5_eval_sites) {
-        munge_long(p3_nldas_glm_uncalibrated_output) %>%
-          mutate(site_id = p2_nldas_glm_uncalibrated_run_groups$site_id, .before=1) %>%
+      if (p3_nldas_glm_uncalibrated_output$site_id %in% p5_eval_sites) {
+        p3_nldas_glm_uncalibrated_output %>%
           select(-ice)
       }
     },
-    pattern = map(p3_nldas_glm_uncalibrated_output, p2_nldas_glm_uncalibrated_run_groups)
+    pattern = map(p3_nldas_glm_uncalibrated_output)
   ),
   
   # Group filtered NLDAS preds by site, set up tar_group()
