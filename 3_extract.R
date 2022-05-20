@@ -17,7 +17,9 @@ p3 <- list(
       outfile <- sprintf('3_extract/out/GLM_%s_%s.feather', 
                          unique(p2_gcm_glm_uncalibrated_run_groups$site_id), 
                          unique(p2_gcm_glm_uncalibrated_run_groups$driver))
-      arrow::write_feather(p3_gcm_glm_uncalibrated_output, outfile)
+      p3_gcm_glm_uncalibrated_output %>%
+        select(-site_id) %>%
+        arrow::write_feather(outfile)
       return(outfile)
     },
     format = 'file',
@@ -71,7 +73,9 @@ p3 <- list(
       outfile <- sprintf('3_extract/out/GLM_%s_%s.feather', 
                          p2_nldas_glm_uncalibrated_run_groups$site_id, 
                          p2_nldas_glm_uncalibrated_run_groups$driver)
-      arrow::write_feather(p3_nldas_glm_uncalibrated_output, outfile)
+      p3_nldas_glm_uncalibrated_output %>%
+        select(-site_id) %>%
+        arrow::write_feather(outfile)
       return(outfile)
     },
     pattern = map(p2_nldas_glm_uncalibrated_run_groups)

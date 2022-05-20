@@ -28,7 +28,8 @@ combine_glm_output <- function(run_group, outfile_template) {
     arrow::read_feather(current_run$export_fl) %>%
       select(-hice, -evap, -n_layers) %>%
       filter(time >= current_run$driver_start_date & time <= current_run$driver_end_date)
-  })
+  }) %>%
+    mutate(site_id = unique(run_group$site_id), .before=1)
   
   return(glm_output)
 }
