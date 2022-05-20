@@ -5,20 +5,26 @@ p2 <- list(
   ##### GCM model runs #####
   # Function will generate file
   # but return a tibble that includes that filename and its hash
-  # put simulation directories in sub-directory for easy deletion
+  # puts simulation directories in sub-directory for easy deletion
+  # Maps over the grouped p1_gcm_model_config_groups, which has 
+  # `p1_gcm_group_length` (18) model runs per group, or 1 group 
+  # per lake (6 GCMS * 3 time periods = 18)
   tar_target(
     p2_gcm_glm_uncalibrated_runs,
     {
       # check mapping to ensure is correct
-      tar_assert_identical(p1_gcm_model_config$site_id, p1_gcm_nml_objects$morphometry$lake_name, "p1_nml_object site id doesn't match p1_gcm_model_config site id")
-      run_glm3_model(
-        sim_dir = '2_run/tmp/simulations',
-        nml_obj = p1_gcm_nml_objects,
-        model_config = p1_gcm_model_config,
-        export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather')
+      tar_assert_identical(unique(p1_gcm_model_config_groups$site_id), p1_gcm_nml_objects$morphometry$lake_name, "p1_nml_object site id doesn't match unique p1_gcm_model_config_groups site id")
+      purrr::pmap_dfr(p1_gcm_model_config_groups, function(...) {
+        run_config <- tibble(...)
+        run_glm3_model(
+          sim_dir = '2_run/tmp/simulations',
+          nml_obj = p1_gcm_nml_objects,
+          model_config = run_config,
+          export_fl_template = '2_run/tmp/GLM_%s_%s_%s.feather')
+      })
     },
     packages = c('retry','glmtools', 'GLM3r'),
-    pattern = map(p1_gcm_model_config, cross(p1_gcm_nml_objects, p1_gcm_names, p1_gcm_dates))),
+    pattern = map(p1_gcm_model_config_groups, p1_gcm_nml_objects)), # W/ all runs for each lake in 1 config group, can map over nml objects w/o cross(), as is same length as # of config groups
   
   # For bundling of results by lake and by GCM in 3_extract
   # Group model runs by lake id and driver
