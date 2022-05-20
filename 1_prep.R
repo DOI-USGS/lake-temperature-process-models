@@ -19,7 +19,7 @@ p1 <- list(
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(site_id %in% p1_nml_site_ids) %>%
-               arrange(site_id)), 
+               arrange(site_id)),
   
   ##### Define vector of site ids and subset nml list #####
   # Pull vector of site ids
@@ -65,9 +65,24 @@ p1 <- list(
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
 
+  # Set up grouping for model runs
+  tar_target(p1_gcm_group_length,
+             # number of model runs to execute per tar_group
+             length(p1_gcm_names)*nrow(p1_gcm_dates)),
   # Build GCM model config
-  tar_target(p1_gcm_model_config,
-             build_gcm_model_config(p1_gcm_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
+  tar_target(p1_gcm_model_config_groups,
+             build_gcm_model_config(p1_gcm_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates) %>%
+               # Grouping to reduce number of target branches
+               # Currently p1_gcm_group_length = # GCMs * 3 time periods = 18, so there is one group per site
+               # This is the easiest batching to set up given the mapping to build `p2_gcm_glm_uncalibrated_runs`
+               mutate(n_groups = ceiling(n() / p1_gcm_group_length),
+                      seq = seq_len(n()),
+                      target_group = ntile(seq, n_groups)) %>%
+               select(-seq, -n_groups) %>%
+               group_by(target_group) %>%
+               tar_group(),
+             iteration = "group"
+  ),
   
   # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes
