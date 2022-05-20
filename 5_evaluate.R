@@ -32,19 +32,12 @@ p5 <- list(
              iteration = "group"),
   
   # Prep NLDAS predictions
-  # For sites that are evaluation sites,
-  # get NLDAS predictions in long format
-  # This is faster than munging all NLDAS output to long format
-  # and then filtering to site_ids in p5_eval_sites
+  # Keep predictions for sites that are evaluation sites
   tar_target(
     p5_nldas_preds_eval,
-    {
-      if (p3_nldas_glm_uncalibrated_output$site_id %in% p5_eval_sites) {
-        p3_nldas_glm_uncalibrated_output %>%
-          select(-ice)
-      }
-    },
-    pattern = map(p3_nldas_glm_uncalibrated_output)
+    p3_nldas_glm_uncalibrated_output %>%
+      select(-ice) %>%
+      filter(site_id %in% p5_eval_sites)
   ),
   
   # Group filtered NLDAS preds by site, set up tar_group()
