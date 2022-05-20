@@ -35,9 +35,11 @@ p5 <- list(
   # Keep predictions for sites that are evaluation sites
   tar_target(
     p5_nldas_preds_eval,
-    p3_nldas_glm_uncalibrated_output %>%
-      select(-ice) %>%
-      filter(site_id %in% p5_eval_sites)
+    if (p3_nldas_glm_uncalibrated_output$site_id %in% p5_eval_sites) {
+      p3_nldas_glm_uncalibrated_output %>%
+        select(-ice)
+    },
+    pattern = map(p3_nldas_glm_uncalibrated_output)
   ),
   
   # Group filtered NLDAS preds by site, set up tar_group()
