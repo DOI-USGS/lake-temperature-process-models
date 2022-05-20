@@ -44,8 +44,15 @@ p5 <- list(
   # Filter long-format NLDAS preds to only evaluation sites
   tar_target(
     p5_nldas_preds_eval,
-    p5_nldas_preds_long %>%
-      filter(site_id %in% p5_eval_sites)
+    {
+      nldas_preds <- p5_nldas_preds_long %>%
+        setDT() %>%
+        setkey(site_id)
+      nldas_preds_eval <- nldas_preds[p5_eval_sites]
+    }
+    # OLD CODE - WAS HANGING ON TALLGRASS
+    # p5_nldas_preds_long %>%
+    #   filter(site_id %in% p5_eval_sites)
   ),
   
   # Group filtered NLDAS preds by site, set up tar_group()
