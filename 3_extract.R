@@ -8,20 +8,9 @@ p3 <- list(
   # for each time period (excluding the burn-in and burn-out periods) and
   # saving only the temperature predictions for each depth and ice flags
   tar_target(
-    p3_gcm_glm_uncalibrated_output,
-    combine_glm_output(p2_gcm_glm_uncalibrated_run_groups),
-    pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
-  tar_target(
     p3_gcm_glm_uncalibrated_output_feathers,
-    {
-      outfile <- sprintf('3_extract/out/GLM_%s_%s.feather', 
-                         unique(p2_gcm_glm_uncalibrated_run_groups$site_id), 
-                         unique(p2_gcm_glm_uncalibrated_run_groups$driver))
-      p3_gcm_glm_uncalibrated_output %>%
-        select(-site_id) %>%
-        arrow::write_feather(outfile)
-      return(outfile)
-    },
+    write_glm_output(p2_gcm_glm_uncalibrated_run_groups,
+                     outfile_template='3_extract/out/GLM_%s_%s.feather'),
     format = 'file',
     pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
   
@@ -63,21 +52,9 @@ p3 <- list(
   # (excluding the burn-in and burn-out periods) and saving only the 
   # temperature predictions for each depth and ice flags
   tar_target(
-    p3_nldas_glm_uncalibrated_output,
-    combine_glm_output(p2_nldas_glm_uncalibrated_run_groups),
-    pattern = map(p2_nldas_glm_uncalibrated_run_groups)
-  ),
-  tar_target(
     p3_nldas_glm_uncalibrated_output_feathers,
-    {
-      outfile <- sprintf('3_extract/out/GLM_%s_%s.feather', 
-                         p2_nldas_glm_uncalibrated_run_groups$site_id, 
-                         p2_nldas_glm_uncalibrated_run_groups$driver)
-      p3_nldas_glm_uncalibrated_output %>%
-        select(-site_id) %>%
-        arrow::write_feather(outfile)
-      return(outfile)
-    },
+    write_glm_output(p2_nldas_glm_uncalibrated_run_groups,
+                     outfile_template='3_extract/out/GLM_%s_%s.feather'),
     pattern = map(p2_nldas_glm_uncalibrated_run_groups)
   ),
   
