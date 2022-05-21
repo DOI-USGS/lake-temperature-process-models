@@ -16,8 +16,7 @@ get_site_preds <- function(result_group) {
       filter(time >= current_results$driver_start_date & time <= current_results$driver_end_date) %>%
       mutate(driver = current_results$driver, time_period = current_results$time_period)
   }) %>%  
-    mutate(site_id = unique(result_group$site_id), time = as.time(time)) %>%
-    select(-time) %>%
+    mutate(site_id = unique(result_group$site_id), time = as.Date(time)) %>%
     mutate(month = month(time),
            year = year(time), 
            doy = yday(time),
