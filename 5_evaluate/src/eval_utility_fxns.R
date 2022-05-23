@@ -34,16 +34,23 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
 #' @title Match predictions to observations
 #' @description Munge model predictions to long format and interpolate them to 
 #' the depths of the observations
+#' @param preds_file The filepath for temperature predictions to use in evaluation. 
+#' The filepath corresponds to predictions for the site_id associated with `eval_obs`
 #' @param eval_obs temperature observations to use in evaluation (in long format), 
 #' filtered to dates with observations and grouped by site. The function maps over 
-#' these groups.
-#' @param eval_preds temperature predictions to use in evaluation, grouped by site.
-#' The function maps over these groups.
+#' these groups, so observations for a single site are passed each time this 
+#' function is called.
 #' @return A tibble with predictions matched to observations (on available dates)
 #' by date and by depth
-match_pred_obs <- function(eval_obs, eval_preds) {
-  # Munge model predictions to long format
-  eval_preds <- eval_preds %>%
+match_pred_obs <- function(preds_file, eval_obs) {
+  # Read in model predictions for the current site
+  # filter to dates with observations
+  # and munge model predictions to long format
+  eval_preds <- arrow::read_feather(preds_file) %>%
+    filter(time %in% eval_obs$time) %>%
+    mutate(site_id = unique(eval_obs$site_id)) %>%
+    select(-ice) %>%
+    arrange(site_id, time) %>%
     munge_long() %>% # Fxn in 4_visualize/src/plot_data_utility_fxns.R
     mutate(depth = as.numeric(depth)) %>% 
     rename(pred = temperature)

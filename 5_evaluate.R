@@ -31,46 +31,16 @@ p5 <- list(
                tar_group(),
              iteration = "group"),
   
-  # Prep NLDAS predictions
-  # Read in predictions for sites that are evaluation sites and filter
-  # predictions for each site to only those dates that have observations 
-  tar_target(
-    p5_nldas_preds_eval,
-    {
-      tar_assert_identical(p5_eval_sites, unique(p5_obs_for_eval_groups$site_id), 
-                           "p5_eval_sites site id doesn't match p5_obs_for_eval_groups site id")
-      arrow::read_feather(sprintf('3_extract/out/GLM_%s_NLDAS.feather', p5_eval_sites)) %>%
-        filter(time %in% p5_obs_for_eval_groups$time) %>%
-        mutate(site_id = p5_eval_sites) %>%
-        select(-ice) %>%
-        arrange(site_id, time)
-    },
-    pattern = map(p5_eval_sites, p5_obs_for_eval_groups)
-  ),
-  
-  # Group filtered NLDAS preds by site, set up tar_group()
-  tar_target(
-    p5_nldas_preds_eval_groups,
-    p5_nldas_preds_eval %>%
-      group_by(site_id) %>%
-      tar_group(),
-    iteration = "group"
-  ),
-  
   # Match NLDAS predictions to observations
   # https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L14-L35
   # actual matching (by site): https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L113-L132
-  # map over eval groups (so parallelizable on Tallgrass)
+  # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_nldas_pred_obs,
-             {
-               tar_assert_identical(unique(p5_obs_for_eval_groups$site_id), unique(p5_nldas_preds_eval_groups$site_id), 
-                                    "p5_obs_for_eval_groups site id doesn't match p5_nldas_preds_eval_groups site id")
-               match_pred_obs(eval_obs = p5_obs_for_eval_groups, eval_preds = p5_nldas_preds_eval_groups) %>%
-                 select(-tar_group) # drop grouping column
-             },
-             pattern = map(p5_obs_for_eval_groups, p5_nldas_preds_eval_groups)),
+             match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_NLDAS.feather', unique(p5_obs_for_eval_groups$site_id)),
+                            eval_obs = p5_obs_for_eval_groups),
+             pattern = map(p5_obs_for_eval_groups)),
 
-  # Write matched predictions to file
+  # Write matched pred-obs to file
   tar_target(p5_nldas_pred_obs_csv,
              {
                outfile <- '5_evaluate/out/nldas_matched_to_observations.csv'
