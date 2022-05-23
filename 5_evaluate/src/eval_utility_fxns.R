@@ -107,7 +107,7 @@ prep_data_for_eval <- function(pred_obs, selected_depth) {
 calc_bias <- function(eval_pred_obs, grouping_var) {
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
-    summarize(bias = median(pred_diff))
+    summarize(bias = median(pred_diff, na.rm=TRUE))
 }
 
 #' @title Calculate rmse
