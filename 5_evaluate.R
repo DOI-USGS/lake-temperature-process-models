@@ -42,7 +42,8 @@ p5 <- list(
       arrow::read_feather(sprintf('3_extract/out/GLM_%s_NLDAS.feather', p5_eval_sites)) %>%
         filter(time %in% p5_obs_for_eval_groups$time) %>%
         mutate(site_id = p5_eval_sites) %>%
-        select(-ice)
+        select(-ice) %>%
+        arrange(site_id, time)
     },
     pattern = map(p5_eval_sites, p5_obs_for_eval_groups)
   ),
