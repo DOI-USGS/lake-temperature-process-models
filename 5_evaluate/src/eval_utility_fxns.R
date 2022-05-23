@@ -107,7 +107,9 @@ prep_data_for_eval <- function(pred_obs, selected_depth) {
 calc_bias <- function(eval_pred_obs, grouping_var) {
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
-    summarize(bias = median(pred_diff, na.rm=TRUE))
+    summarize(bias = median(pred_diff, na.rm=TRUE),
+              n_dates = n(),
+              n_sites = length(unique(site_id)))
 }
 
 #' @title Calculate rmse
@@ -122,7 +124,9 @@ calc_bias <- function(eval_pred_obs, grouping_var) {
 calc_rmse <- function(eval_pred_obs, grouping_var) {
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
-    summarize(rmse = sqrt(mean((pred_diff)^2, na.rm=TRUE)))
+    summarize(rmse = sqrt(mean((pred_diff)^2, na.rm=TRUE)),
+              n_dates = n(),
+              n_sites = length(unique(site_id)))
 }
 
 #' @title Plot evaluation metrics as a bar plot
