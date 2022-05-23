@@ -24,7 +24,9 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
     summarize(n_dates = length(unique(time))) %>% filter(n_dates >= min_obs_dates) %>%
     pull(site_id)
   
-  filtered_temp_obs <- filter(temp_obs, site_id %in% eval_sites)
+  filtered_temp_obs <- temp_obs %>%
+    filter(site_id %in% eval_sites) %>%
+    arrange(site_id)
   
   return(filtered_temp_obs)
 }

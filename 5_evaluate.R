@@ -36,10 +36,14 @@ p5 <- list(
   # predictions for each site to only those dates that have observations 
   tar_target(
     p5_nldas_preds_eval,
-    arrow::read_feather(sprintf('3_extract/out/GLM_%s_NLDAS.feather', p5_eval_sites)) %>%
-      filter(time %in% p5_obs_for_eval_groups$time) %>%
-      mutate(site_id = p5_eval_sites) %>%
-      select(-ice),
+    {
+      tar_assert_identical(p5_eval_sites, unique(p5_obs_for_eval_groups$site_id), 
+                           "p5_eval_sites site id doesn't match p5_obs_for_eval_groups site id")
+      arrow::read_feather(sprintf('3_extract/out/GLM_%s_NLDAS.feather', p5_eval_sites)) %>%
+        filter(time %in% p5_obs_for_eval_groups$time) %>%
+        mutate(site_id = p5_eval_sites) %>%
+        select(-ice)
+    },
     pattern = map(p5_eval_sites, p5_obs_for_eval_groups)
   ),
   
@@ -57,8 +61,12 @@ p5 <- list(
   # actual matching (by site): https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L113-L132
   # map over eval groups (so parallelizable on Tallgrass)
   tar_target(p5_nldas_pred_obs,
-             match_pred_obs(eval_obs = p5_obs_for_eval_groups, eval_preds = p5_nldas_preds_eval_groups) %>%
-               select(-tar_group), # drop grouping column
+             {
+               tar_assert_identical(unique(p5_obs_for_eval_groups$site_id), unique(p5_nldas_preds_eval_groups$site_id), 
+                                    "p5_obs_for_eval_groups site id doesn't match p5_nldas_preds_eval_groups site id")
+               match_pred_obs(eval_obs = p5_obs_for_eval_groups, eval_preds = p5_nldas_preds_eval_groups) %>%
+                 select(-tar_group) # drop grouping column
+             },
              pattern = map(p5_obs_for_eval_groups, p5_nldas_preds_eval_groups)),
 
   # Write matched predictions to file
