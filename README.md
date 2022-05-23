@@ -4,14 +4,17 @@ This repository is for running uncalibrated GLM models of lake temperatures.
 
 -------------------
 ## Dependent files 
-* NLDAS driver files
+* GLM 3 template
+  * `'1_prep/in/glm3_template.nml'` (committed to repo)
+* NLDAS driver files (stored on Caldera)
   * _e.g._, `'1_prep/in/NLDAS_time[0.379366]_x[231]_y[167].csv'`
 
-*Files  from [`lake-temperature-model-prep pipeline`](https://github.com/USGS-R/lake-temperature-model-prep) that will eventually be transferred using GLOBUS:*
-* List of lake-specific attributes for nml modification: `'1_prep/in/nml_list.rds'`
-* Lake - GCM cell tile crosswalk: `'1_prep/in/lake_cell_tile_xwalk.csv'`
+*Files  from [`lake-temperature-model-prep pipeline`](https://github.com/USGS-R/lake-temperature-model-prep) that will eventually be transferred using GLOBUS (location in `lake-temperature-model-prep` --> location in this pipeline):*
+* List of lake-specific attributes for nml modification: `'7_config_merge/out/nml_list.rds'` --> `'1_prep/in/nml_list.rds'`
+* Lake-to-state crosswalk: `'2_crosswalk_munge/out/lake_to_state_xwalk.rds'` --> `'1_prep/in/lake_to_state_xwalk.rds'`
+* Lake - GCM cell tile crosswalk: `'7_drivers_munge/out/lake_cell_tile_xwalk.csv'` --> `'1_prep/in/lake_cell_tile_xwalk.csv'`
   * Created within the [targets sub-pipeline](https://github.com/USGS-R/lake-temperature-model-prep/blob/main/_targets.R), look for the lake_cell_tile_xwalk_df target
-* Munged GCM netCDF files (one per GCM)
+* Munged GCM netCDF files (one per GCM): `'7_drivers_munge/out/GCM_{gcm name}.nc'` --> `'1_prep/in/GCM_{gcm name}.nc'`
 
 
 
