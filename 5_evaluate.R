@@ -49,57 +49,60 @@ p5 <- list(
   
   # Prep matched preds for evaluation
   # Add pred_diff column (pred - obs)
-  # Filter matched obs-preds w/ pred_diff to surface obs-preds
   # Set up variables for which bias/accuracy will be calculated
-  # Add fields for year, doy, season, temp_bin
-  tar_target(p5_nldas_pred_obs_surface_eval,
-             prep_data_for_eval(p5_nldas_pred_obs, selected_depth = 0, 
+  # Add fields for year, depth_class, doy, doy_bin, season, temp_bin
+  tar_target(p5_nldas_pred_obs_eval,
+             prep_data_for_eval(p5_nldas_pred_obs, surface_cutoff_depth = 1, middle_cutoff_depth = 5,
                                 doy_bin_size = 5, temp_bin_size = 2)),
+  
+  # Filter to only surface pred-obs
+  tar_target(p5_nldas_pred_obs_eval_surface,
+             filter(p5_nldas_pred_obs_eval, depth_class=='surface')),
   
   ###### Assess model bias ######
   
   # Bias through time - year
   tar_target(p5_nldas_surface_bias_year,
-             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'year')),
+             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'year')),
   
   # Bias through time - doy
   tar_target(p5_nldas_surface_bias_doy,
-             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'doy')),
+             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy')),
   
   # Bias by season
   tar_target(p5_nldas_surface_bias_season,
-             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'season')),
+             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'season')),
 
   # Bias for specific temperature ranges
   tar_target(p5_nldas_surface_bias_temp,
-             calc_bias(p5_nldas_pred_obs_surface_eval, grouping_var = 'temp_bin')),
+             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'temp_bin')),
   
   ## Plots
   # Bar plot of bias through time, by  year
   tar_target(p5_nldas_surface_bias_year_png,
              plot_evaluation_barplot(p5_nldas_surface_bias_year, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'year', depth='surface',
+                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'year', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_bias_year.png'),
              format = 'file'),
   
   # Bar plot of bias through time, by doy
   tar_target(p5_nldas_surface_bias_doy_png,
              plot_evaluation_barplot(p5_nldas_surface_bias_doy, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy', depth='surface',
+                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_bias_doy.png'),
              format = 'file'),
   
   # Bar plot of bias by season
   tar_target(p5_nldas_surface_bias_season_png,
              plot_evaluation_barplot(p5_nldas_surface_bias_season, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'season', depth='surface',
+                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'season', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_bias_season.png'),
              format = 'file'),
   
   # Bar plot of bias for 2-degree temperature bins
   tar_target(p5_nldas_surface_bias_temp_png,
              plot_evaluation_barplot(p5_nldas_surface_bias_temp, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'temp_bin', depth='surface',
+                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'temp_bin', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_bias_temp.png'),
              format = 'file'),
   
@@ -107,46 +110,46 @@ p5 <- list(
   
   # # Accuracy through time - year
   tar_target(p5_nldas_surface_accuracy_year,
-             calc_rmse(p5_nldas_pred_obs_surface_eval, grouping_var = 'year')),
+             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'year')),
   
   # Accuracy through time - doy
   tar_target(p5_nldas_surface_accuracy_doy,
-             calc_rmse(p5_nldas_pred_obs_surface_eval, grouping_var = 'doy')),
+             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy')),
   
   # Accuracy by season
   tar_target(p5_nldas_surface_accuracy_season,
-             calc_rmse(p5_nldas_pred_obs_surface_eval, grouping_var = 'season')),
+             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'season')),
   
   # Accuracy for specific temperature ranges
   tar_target(p5_nldas_surface_accuracy_temp,
-             calc_rmse(p5_nldas_pred_obs_surface_eval, grouping_var = 'temp_bin')),
+             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'temp_bin')),
   
   ## Plots
   # Bar plot of accuracy through time, by  year
   tar_target(p5_nldas_surface_accuracy_year_png,
              plot_evaluation_barplot(p5_nldas_surface_accuracy_year, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'year', depth='surface',
+                          y_var = 'rmse', y_label = 'rmse', x_var = 'year', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_accuracy_year.png'),
              format = 'file'),
   
   # Bar plot of accuracy through time, by doy
   tar_target(p5_nldas_surface_accuracy_doy_png,
              plot_evaluation_barplot(p5_nldas_surface_accuracy_doy, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'doy', depth='surface',
+                          y_var = 'rmse', y_label = 'rmse', x_var = 'doy', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_accuracy_doy.png'),
              format = 'file'),
   
   # Bar plot of accuracy by season
   tar_target(p5_nldas_surface_accuracy_season_png,
              plot_evaluation_barplot(p5_nldas_surface_accuracy_season, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'season', depth='surface',
+                          y_var = 'rmse', y_label = 'rmse', x_var = 'season', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_accuracy_season.png'),
              format = 'file'),
   
   # Bar plot of accuracy for 2-degree temperature bins
   tar_target(p5_nldas_surface_accuracy_temp_png,
              plot_evaluation_barplot(p5_nldas_surface_accuracy_temp, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'temp_bin', depth='surface',
+                          y_var = 'rmse', y_label = 'rmse', x_var = 'temp_bin', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_accuracy_temp.png'),
              format = 'file')
 )

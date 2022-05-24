@@ -26,7 +26,7 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
   
   filtered_temp_obs <- temp_obs %>%
     filter(site_id %in% eval_sites) %>%
-    arrange(site_id, time)
+    arrange(site_id, time, depth)
   
   return(filtered_temp_obs)
 }
@@ -50,10 +50,10 @@ match_pred_obs <- function(preds_file, eval_obs) {
     filter(time %in% eval_obs$time) %>%
     mutate(site_id = unique(eval_obs$site_id)) %>%
     select(-ice) %>%
-    arrange(site_id, time) %>%
     munge_long() %>% # Fxn in 4_visualize/src/plot_data_utility_fxns.R
     mutate(depth = as.numeric(depth)) %>% 
-    rename(pred = temperature)
+    rename(pred = temperature) %>%
+    arrange(time, depth)
   
   eval_obs <- eval_obs %>%
     rename(obs = temperature)
@@ -77,21 +77,30 @@ match_pred_obs <- function(preds_file, eval_obs) {
 }
 
 #' @title prep pred-obs data for evaluation
-#' @description filter pred-obs data to selected_depth and add grouping
-#' variables for evaluation.
+#' @description add grouping variables to matched pred-obs for evaluation.
 #' @param pred_obs the tibble of matched observations and predictions
-#' @param selected_depth depth to which to filter the pred-obs data
+#' @param surface_cutoff_depth maximum depth for which predictions are
+#' considered to be in the 'surface' depth class. Currently this is set
+#' as a global value, and is not lake-specific
+#' @param middle_cutoff_depth maximum depth for which predictions are
+#' considered to be in the 'middle' depth class. Currently this is set
+#' as a global value, and is not lake-specific
 #' @param doy_bin_size # of days to include in each doy bin
 #' @param temp_bin_size # of degrees to include in each temperature bin
-#' @return a tibble of matched predictions and observations at the
-#' selected depth with the difference between the prediction and observation
-#' (pred_diff), the year, doy, month, and season of each pred-obs pair,
-#' and the temperature bin into which each observation falls 
-prep_data_for_eval <- function(pred_obs, selected_depth, doy_bin_size, temp_bin_size) {
+#' @return a tibble of matched predictions and observations with the 
+#' difference between the prediction and observation (pred_diff), the
+#' depth_class (surface, middle, or bottom), year, doy, doy_bin (size 
+#' set by `doy_bin_size`), and season of each pred-obs pair, and the 
+#' temperature bin (size set by `temp_bin_size`) into which each observation falls 
+prep_data_for_eval <- function(pred_obs, surface_cutoff_depth, middle_cutoff_depth, doy_bin_size, temp_bin_size) {
   
   eval_pred_obs <- pred_obs %>%
-    filter(depth==selected_depth) %>%
     mutate(pred_diff = pred - obs,
+           depth_class = case_when(
+             depth <= surface_cutoff_depth ~ 'surface',
+             depth > surface_cutoff_depth & depth <= middle_cutoff_depth ~ 'middle',
+             TRUE ~ 'bottom'
+           ),
            year = year(time),
            doy = yday(time),
            doy_bin = doy_bin_size*ceiling(doy/doy_bin_size),
@@ -149,14 +158,15 @@ calc_rmse <- function(eval_pred_obs, grouping_var) {
 #' @param y_var the variable for the y-axis of the plot
 #' @param y_label the label for the y-axis of the plot
 #' @param x_var the variable for the x-axis of the plot
-#' @param depth depth of the plotted pred-obs
+#' @param depth_class depth_class of the pred-obs (surface, middle,
+#' or bottom) that are being plotted.
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, depth, outfile) {
+plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, depth_class, outfile) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
-    labs(title= sprintf("%s predictions: %s by %s", driver, y_var, x_var), 
+    labs(title= sprintf("%s %s predictions: %s by %s", driver, depth_class, y_var, x_var), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
     theme_bw()
