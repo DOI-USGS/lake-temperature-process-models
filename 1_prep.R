@@ -13,6 +13,7 @@ p1 <- list(
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
   # lake-to-state xwalk, filtered to only those lakes that are in nml list (able to be modeled by GLM)
+  # used to define site_ids for NLDAS runs, not for GCM runs
   # file copied from lake-temperature-model-prep repo '2_crosswalk_munge/out/lake_to_state_xwalk.rds'
   tar_target(p1_lake_to_state_xwalk_rds, '1_prep/in/lake_to_state_xwalk.rds', format='file'),
   tar_target(p1_lake_to_state_xwalk_df,
@@ -21,6 +22,7 @@ p1 <- list(
                arrange(site_id)),
   # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
   # that are in nml list (able to be modeled by GLM)
+  # used to define site_ids for GCM runs
   # file copied from lake-temperature-model-prep repo '7_drivers_munge/out/lake_cell_tile_xwalk.csv'
   tar_target(p1_lake_cell_tile_xwalk_csv, '1_prep/in/lake_cell_tile_xwalk.csv', format = 'file'),
   tar_target(p1_lake_cell_tile_xwalk_df, 
