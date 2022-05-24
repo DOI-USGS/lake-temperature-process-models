@@ -31,15 +31,15 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
   return(filtered_temp_obs)
 }
 
-#' @title Match predictions to observations
-#' @description Munge model predictions to long format and interpolate them to 
-#' the depths of the observations
+#' @title Match predictions to observations for a single site
+#' @description For a single site, munge model predictions to long format and 
+#' interpolate them to the depths of the observations. Code adapted from 
+#' https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L14-L35 
+#' https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L113-L132
 #' @param preds_file The filepath for temperature predictions to use in evaluation. 
 #' The filepath corresponds to predictions for the site_id associated with `eval_obs`
-#' @param eval_obs temperature observations to use in evaluation (in long format), 
-#' filtered to dates with observations and grouped by site. The function maps over 
-#' these groups, so observations for a single site are passed each time this 
-#' function is called.
+#' @param eval_obs temperature observations for a single site to use in evaluation
+#' (in long format).
 #' @return A tibble with predictions matched to observations (on available dates)
 #' by date and by depth
 match_pred_obs <- function(preds_file, eval_obs) {
@@ -63,11 +63,11 @@ match_pred_obs <- function(preds_file, eval_obs) {
     pred_1d <- filter(eval_preds, time == selected_time, !is.na(depth))
     obs_1d <- filter(eval_obs, time == selected_time)
     interp_1d <- tryCatch({
-      if(nrow(pred_1d) == 0) stop(sprintf('no predictions on %s', selected_time))
-      if(min(pred_1d$depth) != 0) warning(sprintf('no prediction at 0m on %s', selected_time))
+      if(nrow(pred_1d) == 0) stop(sprintf('no predictions on %s for %s', selected_time, unique(eval_obs$site_id)))
+      if(min(pred_1d$depth) != 0) warning(sprintf('no prediction at 0m on %s for %s', selected_time, unique(eval_obs$site_id)))
       mutate(obs_1d, pred = approx(x=pred_1d$depth, y=pred_1d$pred, xout=obs_1d$depth, rule=1)$y)
     }, error=function(e) {
-      message(sprintf('approx failed on %s: %s', selected_time, e$message))
+      message(sprintf('approx failed for %s on %s: %s', unique(eval_obs$site_id), selected_time, e$message))
       mutate(obs_1d, pred = NA)
     })
     return(interp_1d)
@@ -81,24 +81,27 @@ match_pred_obs <- function(preds_file, eval_obs) {
 #' variables for evaluation.
 #' @param pred_obs the tibble of matched observations and predictions
 #' @param selected_depth depth to which to filter the pred-obs data
+#' @param doy_bin_size # of days to include in each doy bin
+#' @param temp_bin_size # of degrees to include in each temperature bin
 #' @return a tibble of matched predictions and observations at the
 #' selected depth with the difference between the prediction and observation
 #' (pred_diff), the year, doy, month, and season of each pred-obs pair,
 #' and the temperature bin into which each observation falls 
-prep_data_for_eval <- function(pred_obs, selected_depth) {
+prep_data_for_eval <- function(pred_obs, selected_depth, doy_bin_size, temp_bin_size) {
+  
   eval_pred_obs <- pred_obs %>%
     filter(depth==selected_depth) %>%
     mutate(pred_diff = pred - obs,
            year = year(time),
            doy = yday(time),
-           month = month(time),
+           doy_bin = doy_bin_size*ceiling(doy/doy_bin_size),
            season = case_when(
-             month >= 3 & month <= 5 ~ 'spring',
-             month >= 6 & month <= 8 ~ 'summer',
-             month >= 9 & month <= 11 ~ 'fall',
+             doy >= 60 & doy < 173 ~ 'spring',
+             doy >= 173 & doy < 243 ~ 'summer',
+             doy >= 243 & doy < 335 ~ 'fall',
              TRUE ~ 'winter'
            ),
-           temp_bin = 2*ceiling(obs/2))
+           temp_bin = temp_bin_size*ceiling(obs/temp_bin_size))
   
   return(eval_pred_obs)
 }
@@ -144,17 +147,18 @@ calc_rmse <- function(eval_pred_obs, grouping_var) {
 #' @param driver the name of the driver used to generate the
 #' model predictions
 #' @param y_var the variable for the y-axis of the plot
+#' @param y_label the label for the y-axis of the plot
 #' @param x_var the variable for the x-axis of the plot
 #' @param depth depth of the plotted pred-obs
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, driver, y_var, x_var, depth, outfile) {
+plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, depth, outfile) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
     labs(title= sprintf("%s predictions: %s by %s", driver, y_var, x_var), 
          x=sprintf("%s", x_var), 
-         y=sprintf("%s (\u00b0C)", y_var)) +
+         y=sprintf("%s (\u00b0C)", y_label)) +
     theme_bw()
   
   ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=6)
