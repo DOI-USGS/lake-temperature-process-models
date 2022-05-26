@@ -20,8 +20,22 @@ p3 <- list(
   # and the cell_no and tile_no for that lake.
   tar_target(
     p3_gcm_glm_uncalibrated_output_feather_tibble,
-    generate_output_tibble(p2_gcm_glm_uncalibrated_run_groups, p3_gcm_glm_uncalibrated_output_feathers, p1_lake_cell_tile_xwalk_df),
+    generate_output_tibble(p2_gcm_glm_uncalibrated_run_groups, p3_gcm_glm_uncalibrated_output_feathers, 
+                           lake_xwalk = p1_lake_cell_tile_xwalk_df),
     pattern = map(p2_gcm_glm_uncalibrated_run_groups, p3_gcm_glm_uncalibrated_output_feathers)
+  ),
+  
+  # Save summary of output files
+  tar_target(
+    p3_gcm_glm_uncalibrated_output_summary_csv,
+    {
+      outfile <- '3_extract/out/GLM_GCM_summary.csv'
+      p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+        select(site_id, driver, export_fl, export_fl_hash, state) %>%
+        readr::write_csv(outfile)
+      return(outfile)
+    },
+    format = 'file'
   ),
   
   # Group output feather tibble by spatial tile number
@@ -56,6 +70,27 @@ p3 <- list(
     write_glm_output(p2_nldas_glm_uncalibrated_run_groups,
                      outfile_template='3_extract/out/GLM_%s_%s.feather'),
     pattern = map(p2_nldas_glm_uncalibrated_run_groups)
+  ),
+  
+  # Generate a tibble with a row for each output file
+  # that includes the filename and its hash along with the
+  # site_id, driver (NLDAS), and the state the lake is in
+  tar_target(
+    p3_nldas_glm_uncalibrated_output_feather_tibble,
+    generate_output_tibble(p2_nldas_glm_uncalibrated_run_groups, p3_nldas_glm_uncalibrated_output_feathers, 
+                           lake_xwalk = p1_lake_to_state_xwalk_df),
+    pattern = map(p2_nldas_glm_uncalibrated_run_groups, p3_nldas_glm_uncalibrated_output_feathers)
+  ),
+  
+  # Save summary of output files
+  tar_target(
+    p3_nldas_glm_uncalibrated_output_summary_csv,
+    {
+      outfile <- '3_extract/out/GLM_NLDAS_summary.csv'
+      readr::write_csv(p3_nldas_glm_uncalibrated_output_feather_tibble, outfile)
+      return(outfile)
+    },
+    format = 'file'
   ),
   
   # Zip all NLDAS output into a single zip file
