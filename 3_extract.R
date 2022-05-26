@@ -93,10 +93,24 @@ p3 <- list(
     format = 'file'
   ),
   
-  # Zip all NLDAS output into a single zip file
+  # Group output feather tibble by state
+  tar_target(
+    p3_nldas_glm_uncalibrated_output_feather_groups,
+    p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+      group_by(state) %>%
+      tar_group(),
+    iteration = "group"
+  ),
+  
+  # Generate a zip file for each state, zipping the grouped feathers
   tar_target(
     p3_nldas_glm_uncalibrated_output_zips,
-    zip_output_files(p3_nldas_glm_uncalibrated_output_feathers, '3_extract/out/GLM_NLDAS.zip'),
-    format = 'file'
+    {
+      files_to_zip <- p3_nldas_glm_uncalibrated_output_feather_groups$export_fl
+      zipfile_out <- sprintf('3_extract/out/GLM_NLDAS_%s.zip', unique(p3_nldas_glm_uncalibrated_output_feather_groups$state))
+      zip_output_files(files_to_zip, zipfile_out)
+    },
+    format = 'file',
+    pattern = map(p3_nldas_glm_uncalibrated_output_feather_groups)
   )
 )
