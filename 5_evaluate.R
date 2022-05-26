@@ -67,7 +67,7 @@ p5 <- list(
   
   # Bias through time - doy
   tar_target(p5_nldas_surface_bias_doy,
-             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy')),
+             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy_bin')),
   
   # Bias by season
   tar_target(p5_nldas_surface_bias_season,
@@ -88,7 +88,7 @@ p5 <- list(
   # Bar plot of bias through time, by doy
   tar_target(p5_nldas_surface_bias_doy_png,
              plot_evaluation_barplot(p5_nldas_surface_bias_doy, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy', depth_class='surface',
+                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy_bin', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_bias_doy.png'),
              format = 'file'),
   
@@ -114,7 +114,7 @@ p5 <- list(
   
   # Accuracy through time - doy
   tar_target(p5_nldas_surface_accuracy_doy,
-             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy')),
+             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy_bin')),
   
   # Accuracy by season
   tar_target(p5_nldas_surface_accuracy_season,
@@ -135,7 +135,7 @@ p5 <- list(
   # Bar plot of accuracy through time, by doy
   tar_target(p5_nldas_surface_accuracy_doy_png,
              plot_evaluation_barplot(p5_nldas_surface_accuracy_doy, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'doy', depth_class='surface',
+                          y_var = 'rmse', y_label = 'rmse', x_var = 'doy_bin', depth_class='surface',
                           outfile = '5_evaluate/out/nldas_surface_accuracy_doy.png'),
              format = 'file'),
   
