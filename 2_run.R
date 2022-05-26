@@ -26,8 +26,8 @@ p2 <- list(
     packages = c('retry','glmtools', 'GLM3r'),
     pattern = map(p1_gcm_model_config_groups, p1_gcm_nml_objects)), # W/ all runs for each lake in 1 config group, can map over nml objects w/o cross(), as is same length as # of config groups
   
-  # For bundling of results by lake and by GCM in 3_extract
-  # Group model runs by lake id and driver
+  # For bundling of results in 3_extract
+  # Group model runs by lake id
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
   # Filter to groups where all model runs were successful 
@@ -37,27 +37,9 @@ p2 <- list(
     p2_gcm_glm_uncalibrated_runs %>%
       select(site_id, driver, time_period, driver_start_date, driver_end_date, 
              export_fl, export_fl_hash, glm_success) %>%
+      arrange(site_id, driver) %>% # arrange by driver so that GCMs in alphabetical order
       group_by(site_id) %>% 
       filter(all(glm_success)) %>% # Check that all 18 models (3 time periods * 6 GCMs) succeeded for each lake
-      ungroup() %>%
-      group_by(site_id, driver) %>% # Group by site_id and driver (GCM) for creating export files
-      tar_group(),
-    iteration = "group"
-  ),
-  
-  # For bundling of results by lake in 4_visualize
-  # Group model runs by lake id only
-  # Discard the glm diagnostics so they don't trigger rebuilds
-  # even when the export_fl_hash is unchanged
-  # Filter to groups where all model runs were successful 
-  # (if any failed, the group is filtered out)
-  tar_target(
-    p2_gcm_glm_uncalibrated_lake_groups,
-    p2_gcm_glm_uncalibrated_runs %>%
-      select(site_id, driver, time_period, driver_start_date, driver_end_date, 
-             export_fl, export_fl_hash, glm_success) %>%
-      group_by(site_id) %>% 
-      filter(all(glm_success)) %>%
       tar_group(),
     iteration = "group"
   ),
