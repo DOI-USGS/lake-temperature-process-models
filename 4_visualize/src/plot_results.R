@@ -59,14 +59,14 @@ plot_20yr_preds_ice <- function(glm_preds_long, glm_mean_long, all_gcms, outfile
   
   # Pull out ice predictions, and create offset temperature for plotting
   glm_preds_ice <- glm_preds_long %>%
-    select(date, year, doy, period, driver, ice, depth, temperature) %>%
+    select(time, year, doy, period, driver, ice, depth, temperature) %>%
     filter(depth == 0) %>%
     mutate(temperature = -1) %>% # could use actual surface temp, but artificially set to -1 so doesn't block surface temp pred
     filter(ice ==TRUE) # filter to only days when ice was present in any year/for any gcm
   
   # Get dates when all years (or all years and all GCMs) predicted ice
   glm_preds_ice_mean <- glm_preds_long %>%
-    select(date, year, doy, period, driver, ice, depth, temperature) %>%
+    select(time, year, doy, period, driver, ice, depth, temperature) %>%
     filter(depth == 0) %>%
     group_by(depth, doy, period) %>%
     summarize(ice_all = ifelse(sum(ice)==n(), TRUE, FALSE), mean_temp = -2) %>% # could use actual surface temp, but artificially set to -2

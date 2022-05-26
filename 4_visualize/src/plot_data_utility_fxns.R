@@ -16,14 +16,13 @@ get_site_preds <- function(result_group) {
       filter(time >= current_results$driver_start_date & time <= current_results$driver_end_date) %>%
       mutate(driver = current_results$driver, time_period = current_results$time_period)
   }) %>%  
-    mutate(site_id = unique(result_group$site_id), date = as.Date(time)) %>%
-    select(-time) %>%
-    mutate(month = month(date),
-           year = year(date), 
-           doy = yday(date),
+    mutate(site_id = unique(result_group$site_id), time = as.Date(time)) %>%
+    mutate(month = month(time),
+           year = year(time), 
+           doy = yday(time),
            period = gsub('_',' - ', time_period),
-           .after=date) %>%
-    select(site_id, date, month, year, doy, period, driver, ice, hice, evap, n_layers, everything())
+           .after=time) %>%
+    select(site_id, time, month, year, doy, period, driver, ice, hice, evap, n_layers, everything())
   
   return(site_preds)
 }
@@ -79,7 +78,7 @@ munge_long <- function(input_wide) {
   input_long <- input_wide %>%
     pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
     mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
-    arrange(date, depth)
+    arrange(time, depth)
 }
 
 #' @title Get the surface, middle, and bottom depths for a given lake, 
