@@ -51,9 +51,9 @@ p4 <- list(
     format='file'),
   
   # Plots for each lake
-  # Subset p2_glm_uncalibrated_lake_groups to selected plotting site_ids
+  # Subset p2_glm_uncalibrated_run_groups to selected plotting site_ids
   tar_target(p4_subset_gcm_lake_groups,
-             p2_gcm_glm_uncalibrated_lake_groups %>%
+             p2_gcm_glm_uncalibrated_run_groups %>%
                filter(site_id %in% p4_plot_site_ids) %>%
                group_by(site_id) %>% 
                tar_group(),
