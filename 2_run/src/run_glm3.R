@@ -22,6 +22,11 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
   ice_data <- glmtools::get_var(nc_filepath, var_name = 'hice') %>%
     mutate(ice = hice > 0, time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
     select(-DateTime)
+  # check if max ice thickness exceeds lake depth
+  max_hice <- max(ice_data$hice)
+  if (max_hice > lake_depth) {
+    stop('Maximum hice value exceeds lake depth')
+  }
   all_results <- temp_data %>%
     left_join(ice_data, by = 'time') %>%
     left_join(evap_data, by = 'time') %>%
