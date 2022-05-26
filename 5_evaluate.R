@@ -9,15 +9,15 @@ p5 <- list(
   ###### Prep predictions and observations ######
   
   # Get vector of site_ids for which we have NLDAS output
-  tar_target(p3_nldas_export_site_ids,
-             p2_nldas_glm_uncalibrated_run_groups %>%
+  tar_target(p5_nldas_export_site_ids,
+             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
                pull(site_id)),
   
   # Prep site observations
   # filter obs to sites and dates for which we have NLDAS output
   # And further filter obs to those for sites w/ >= `min_obs_dates` dates with observations
   tar_target(p5_obs_for_eval,
-             get_eval_obs(p1_obs_feather, p3_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
+             get_eval_obs(p1_obs_feather, p5_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
                           p1_nldas_dates$driver_end_date, min_obs_dates = 10)),
   
   # Get vector of evaluation sites, based on availability of observations
