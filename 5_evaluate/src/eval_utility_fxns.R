@@ -40,9 +40,10 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
 #' The filepath corresponds to predictions for the site_id associated with `eval_obs`
 #' @param eval_obs temperature observations for a single site to use in evaluation
 #' (in long format).
+#' @param driver weather/climate driver used to generate GLM predictions
 #' @return A tibble with predictions matched to observations (on available dates)
 #' by date and by depth
-match_pred_obs <- function(preds_file, eval_obs) {
+match_pred_obs <- function(preds_file, eval_obs, driver) {
   # Read in model predictions for the current site
   # filter to dates with observations
   # and munge model predictions to long format
@@ -71,7 +72,9 @@ match_pred_obs <- function(preds_file, eval_obs) {
       mutate(obs_1d, pred = NA)
     })
     return(interp_1d)
-  }))
+  })) %>%
+    mutate(driver = driver, .after=site_id) %>%
+    select(-tar_group)
   
   return(pred_obs)
 }
@@ -122,13 +125,15 @@ prep_data_for_eval <- function(pred_obs, surface_cutoff_depth, middle_cutoff_dep
 #' observations, along with grouping variables for evaluation
 #' @param grouping_var the variable by which to group `pred-obs`
 #' before calculating the bias
+#' @param driver weather/climate driver used to generate GLM predictions
 #' @return
-calc_bias <- function(eval_pred_obs, grouping_var) {
+calc_bias <- function(eval_pred_obs, grouping_var, driver) {
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
     summarize(bias = median(pred_diff, na.rm=TRUE),
               n_dates = n(),
-              n_sites = length(unique(site_id)))
+              n_sites = length(unique(site_id))) %>%
+    mutate(driver = driver, .before=1)
 }
 
 #' @title Calculate rmse
@@ -138,14 +143,16 @@ calc_bias <- function(eval_pred_obs, grouping_var) {
 #' observations, along with grouping variables for evaluation
 #' @param grouping_var the variable by which to group `pred-obs`
 #' before calculating the rmse
+#' @param driver weather/climate driver used to generate GLM predictions
 #' @return a tibble grouped by the grouping_var, with a column
 #' for rmse
-calc_rmse <- function(eval_pred_obs, grouping_var) {
+calc_rmse <- function(eval_pred_obs, grouping_var, driver) {
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
     summarize(rmse = sqrt(mean((pred_diff)^2, na.rm=TRUE)),
               n_dates = n(),
-              n_sites = length(unique(site_id)))
+              n_sites = length(unique(site_id))) %>%
+    mutate(driver = driver, .before=1)
 }
 
 #' @title Plot evaluation metrics as a bar plot
@@ -160,15 +167,17 @@ calc_rmse <- function(eval_pred_obs, grouping_var) {
 #' @param x_var the variable for the x-axis of the plot
 #' @param depth_class depth_class of the pred-obs (surface, middle,
 #' or bottom) that are being plotted.
+#' @faceting_variable variable to use for faceting the plot
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, depth_class, outfile) {
+plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, depth_class, faceting_variable, outfile) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
     labs(title= sprintf("%s %s predictions: %s by %s", driver, depth_class, y_var, x_var), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
+    facet_wrap(~get(faceting_variable))
     theme_bw()
   
   ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=6)
