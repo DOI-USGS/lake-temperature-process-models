@@ -3,7 +3,7 @@ source('4_visualize/src/plot_data_utility_fxns.R')
 
 p5 <- list(
   ##### Evaluate GCM model output #####
-  
+
   ##### Evaluate NLDAS model output #####
   
   ###### Prep predictions and observations ######
@@ -16,17 +16,17 @@ p5 <- list(
   # Prep site observations
   # filter obs to sites and dates for which we have NLDAS output
   # And further filter obs to those for sites w/ >= `min_obs_dates` dates with observations
-  tar_target(p5_obs_for_eval,
+  tar_target(p5_nldas_obs_for_eval,
              get_eval_obs(p1_obs_feather, p5_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
                           p1_nldas_dates$driver_end_date, min_obs_dates = 10)),
   
   # Get vector of evaluation sites, based on availability of observations
-  tar_target(p5_eval_sites,
-             p5_obs_for_eval %>% pull(site_id) %>% unique()),
+  tar_target(p5_nldas_eval_sites,
+             p5_nldas_obs_for_eval %>% pull(site_id) %>% unique()),
 
   # Group filtered obs by site, set up tar_group()
-  tar_target(p5_obs_for_eval_groups,
-             p5_obs_for_eval %>%
+  tar_target(p5_nldas_obs_for_eval_groups,
+             p5_nldas_obs_for_eval %>%
                group_by(site_id) %>%
                tar_group(),
              iteration = "group"),
@@ -35,8 +35,8 @@ p5 <- list(
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_nldas_pred_obs,
              match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_NLDAS.feather', unique(p5_obs_for_eval_groups$site_id)),
-                            eval_obs = p5_obs_for_eval_groups),
-             pattern = map(p5_obs_for_eval_groups)),
+                            eval_obs = p5_nldas_obs_for_eval_groups),
+             pattern = map(p5_nldas_obs_for_eval_groups)),
 
   # Write matched pred-obs to file
   tar_target(p5_nldas_pred_obs_csv,
