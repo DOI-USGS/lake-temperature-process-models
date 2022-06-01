@@ -42,9 +42,8 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
   if (max_hice > lake_depth) {
     error_message <- ifelse(is.na(error_message), 'Maximum hice value exceeds lake depth', sprintf('%s, Maximum hice value exceeds lake depth', error_message)) 
   }
-  # If either # layers = 1 OR ice thickness > lake_depth, trigger an error
-  # and return the error message
-  if ((min_layers == 1) | (max_hice > lake_depth)) {
+  # If `error_message` is not NA, trigger an error and return the error message
+  if (!is.na(error_message)) {
     stop(error_message)
   }
 
