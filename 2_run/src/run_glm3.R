@@ -31,20 +31,20 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
     select(-DateTime)
   
   # As a further check of whether or not the model run was successful, 
-  # check if # layers = 1 at any point during the simulation, and 
-  # return an error message if so
+  # check if # layers = 1 at any point during the simulation
+  error_message <- NA
   min_layers <- min(layers_data$n_layers)
   if (min_layers == 1) {
     error_message <- 'Number of layers drops to 1'
-    
-    # also check if max ice thickness exceeds lake depth, since that
-    # is sometimes the reason that the number of layers drops to 1
-    max_hice <- max(ice_data$hice)
-    
-    if (max_hice > lake_depth) {
-      error_message <- sprintf('%s, Maximum hice value exceeds lake depth', error_message)
-    }
-    
+  }
+  # also check if max ice thickness exceeds lake depth
+  max_hice <- max(ice_data$hice)
+  if (max_hice > lake_depth) {
+    error_message <- ifelse(is.na(error_message), 'Maximum hice value exceeds lake depth', sprintf('%s, Maximum hice value exceeds lake depth', error_message)) 
+  }
+  # If either # layers = 1 OR ice thickness > lake_depth, trigger an error
+  # and return the error message
+  if ((min_layers == 1) | (max_hice > lake_depth)) {
     stop(error_message)
   }
 
