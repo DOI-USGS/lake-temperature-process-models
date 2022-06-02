@@ -177,7 +177,7 @@ plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, dept
     labs(title= sprintf("%s %s predictions: %s by %s", driver, depth_class, y_var, x_var), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
-    facet_wrap(~get(faceting_variable))
+    facet_wrap(~get(faceting_variable)) +
     theme_bw()
   
   ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=6)
