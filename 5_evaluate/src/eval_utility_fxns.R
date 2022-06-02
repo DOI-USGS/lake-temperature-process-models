@@ -106,6 +106,7 @@ prep_data_for_eval <- function(pred_obs, lake_depths, surface_max_depth, bottom_
              depth >= (bottom_depth_factor * lake_depth) ~ 'bottom',
              TRUE ~ 'middle'
            ),
+           depth_class = factor(depth_class,levels=c('surface','middle','bottom')),
            year = year(time),
            doy = yday(time),
            doy_bin = doy_bin_size*ceiling(doy/doy_bin_size),
@@ -120,7 +121,7 @@ prep_data_for_eval <- function(pred_obs, lake_depths, surface_max_depth, bottom_
   return(eval_pred_obs)
 }
 
-#' @title Calcuate bias
+#' @title Calculate bias
 #' @description Calculate the bias of model predictions over a 
 #' specified `grouping_var`
 #' @param eval_pred_obs a tibble of the matched model predictions and 
@@ -177,9 +178,9 @@ plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, face
     labs(title= sprintf("%s predictions: %s by %s", driver, y_var, x_var), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
-    facet_wrap(~get(faceting_variable)) +
+    facet_wrap(~get(faceting_variable), nrow = 2) +
     theme_bw()
   
-  ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=6)
+  ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=8)
   return(outfile)
 }
