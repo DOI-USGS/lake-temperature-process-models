@@ -9,9 +9,16 @@
 extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
   lake_depth <- glmtools::get_nml_value(nml_obj, arg_name = 'lake_depth')
   export_depths <- seq(0, lake_depth, by = 0.5)
+  
+  # Extract temperature predictions for simulation
+  # This may trigger an error ('need at least two non-NA values to interpolate')
+  # if the temperature predictions contain NA values. If so, that's documented
+  # as a 'NA temperature values' error in our export tibble returned by `run_glm3_model()`
   temp_data <- glmtools::get_temp(nc_filepath, reference = 'surface', z_out = export_depths) %>%
     mutate(time = as.Date(lubridate::floor_date(DateTime, 'days'))) %>% 
     select(-DateTime)
+  
+  # Extract layers, evaporation, and ice data for simulation
   layers_data <- glmtools::get_var(nc_filepath, 'NS') %>%
     rename(n_layers = NS) %>%
     mutate(time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
@@ -22,6 +29,24 @@ extract_glm_output <- function(nc_filepath, nml_obj, export_fl) {
   ice_data <- glmtools::get_var(nc_filepath, var_name = 'hice') %>%
     mutate(ice = hice > 0, time = as.Date(lubridate::ceiling_date(DateTime, ' days'))) %>%
     select(-DateTime)
+  
+  # As a further check of whether or not the model run was successful, 
+  # check if # layers = 1 at any point during the simulation
+  error_message <- NA
+  min_layers <- min(layers_data$n_layers)
+  if (min_layers == 1) {
+    error_message <- 'Number of layers drops to 1'
+  }
+  # also check if max ice thickness exceeds lake depth
+  max_hice <- max(ice_data$hice)
+  if (max_hice > lake_depth) {
+    error_message <- ifelse(is.na(error_message), 'Maximum hice value exceeds lake depth', sprintf('%s, Maximum hice value exceeds lake depth', error_message)) 
+  }
+  # If `error_message` is not NA, trigger an error and return the error message
+  if (!is.na(error_message)) {
+    stop(error_message)
+  }
+
   all_results <- temp_data %>%
     left_join(ice_data, by = 'time') %>%
     left_join(evap_data, by = 'time') %>%
@@ -118,7 +143,7 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
         },
         error = function(e) {
           if (grepl(e$message, 'need at least two non-NA values to interpolate')) {
-            extraction_error <- 'NA values'
+            extraction_error <- 'NA temperature values'
           } else {
             extraction_error <- e$message
           }

@@ -34,37 +34,36 @@ combine_glm_output <- function(run_group) {
 #' @title Generate a tibble of information about the output
 #' feather files
 #' @description Generate a tibble with a row for each output file
-#' (unique to each lake-gcm combo) that includes its filename and its 
-#' hash along with the site_id, driver (gcm_name), the state the lake is in, and the 
-#' GCM spatial_cell_no, spatial_tile_no, data_cell_no, and data_tile_no 
-#' for that lake.
-#' @param run_group a single group from the `p2_gcm_glm_uncalibrated_run_groups`
-#' grouped version of the `p2_gcm_glm_uncalibrated_runs` output tibble subset 
-#' to the site_id, driver (gcm name), time_period, gcm_start_date, gcm_end_date, 
-#' export_fl, and export_fl_hash columns and grouped by site_id. Then filtered  
-#' to only groups for which glm_success==TRUE for all runs in that group. And
-#' then regrouped by site_id and driver (gcm name). The function maps over 
-#' these groups.
+#' that includes its filename and its hash along with the site_id, 
+#' driver, the state the lake is in, and, if the passed runs are
+#' GCM runs, the GCM spatial_cell_no, spatial_tile_no, data_cell_no, 
+#' and data_tile_no for that lake.
+#' @param run_group a single group of successful model runs. If the
+#' passed runs are GCM runs, this group includes all runs for a lake-gcm combo
+#' (nrows = 3). If the passed runs are NLDAS runs, this group includes all
+#' runs for a given lake (nrows = 1). The function maps over these groups.
 #' @param output_feather A single feather file name from the list of 
-#' output feather file names returned by `combine_glm_output()`. 
+#' output feather file names returned by `write_glm_output()`. 
 #' The function maps over these file names.
-#' @param lake_cell_tile_xwalk - mapping of which lakes fall into which gcm 
-#' cells and tiles (parameters `spatial_cell_no` and `spatial_tile_no`) and 
-#' which gcm cell to use for driver data for each lake (`data_cell_no`,
-#' `data_tile_no`). `data_cell_no` will only differ from `spatial_cell_no` 
-#' for those lakes that fall within gcm cells that are missing data.
-#' @return A tibble with one row per lake-gcm output feather file which 
-#' includes the site_id, driver (gcm name), the name of the export feather file,
-#' its hash, the state the lake is in, and the GCM spatial_cell_no, spatial_tile_no, 
+#' @param lake_xwalk - If the passed runs are GCM runs, this xwalk is a 
+#' mapping of which lakes fall into which gcm cells and tiles (parameters 
+#' `spatial_cell_no` and `spatial_tile_no`) and which gcm cell to use for 
+#' driver data for each lake (`data_cell_no`, `data_tile_no`). `data_cell_no` 
+#' will only differ from `spatial_cell_no` for those lakes that fall within gcm 
+#' cells that are missing data. If the passed runs are NLDAS runs, this xwalk
+#' is a mapping of which state each lake falls within.
+#' @return A tibble with one row per output feather file which includes the 
+#' site_id, driver, the name of the export feather file, its hash, the state 
+#' the lake is in, and (if GCM output) the GCM spatial_cell_no, spatial_tile_no, 
 #' data_cell_no, and data_tile_no for that lake.
-generate_output_tibble <- function(run_group, output_feather, lake_cell_tile_xwalk) {
+generate_output_tibble <- function(run_group, output_feather, lake_xwalk) {
   export_tibble <- tibble(
       site_id = unique(run_group$site_id),
       driver = unique(run_group$driver),
       export_fl = output_feather,
       export_fl_hash = tools::md5sum(output_feather)
     ) %>% 
-    left_join(lake_cell_tile_xwalk, by='site_id')
+    left_join(lake_xwalk, by='site_id')
   
   return(export_tibble)
 }
