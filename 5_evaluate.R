@@ -109,34 +109,34 @@ p5 <- list(
   ## Plots
   # Bar plot of bias through time, by  year
   tar_target(p5_nldas_bias_year_png,
-             plot_evaluation_barplot(p5_nldas_bias_year, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'year', 
-                          faceting_variable = 'depth_class',
-                          outfile = '5_evaluate/out/nldas_bias_year.png'),
+             plot_evaluation_barplot(p5_nldas_bias_year, num_eval_sites = length(p5_eval_sites), 
+                                     driver= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'year', faceting_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_year.png'),
              format = 'file'),
   
   # Bar plot of bias through time, by doy
   tar_target(p5_nldas_bias_doy_png,
-             plot_evaluation_barplot(p5_nldas_bias_doy, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy_bin', 
-                          faceting_variable = 'depth_class',
-                          outfile = '5_evaluate/out/nldas_bias_doy.png'),
+             plot_evaluation_barplot(p5_nldas_bias_doy,  num_eval_sites = length(p5_eval_sites), 
+                                     driver= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'doy_bin', faceting_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_doy.png'),
              format = 'file'),
   
   # Bar plot of bias by season
   tar_target(p5_nldas_bias_season_png,
-             plot_evaluation_barplot(p5_nldas_bias_season, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'season', 
-                          faceting_variable = 'depth_class',
-                          outfile = '5_evaluate/out/nldas_bias_season.png'),
+             plot_evaluation_barplot(p5_nldas_bias_season, num_eval_sites = length(p5_eval_sites), 
+                                     driver= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'season', faceting_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_season.png'),
              format = 'file'),
   
   # Bar plot of bias for 2-degree temperature bins
   tar_target(p5_nldas_bias_temp_png,
-             plot_evaluation_barplot(p5_nldas_bias_temp, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'temp_bin', 
-                          faceting_variable = 'depth_class',
-                          outfile = '5_evaluate/out/nldas_bias_temp.png'),
+             plot_evaluation_barplot(p5_nldas_bias_temp, num_eval_sites = length(p5_eval_sites),
+                                     driver= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'temp_bin', faceting_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_temp.png'),
              format = 'file'),
   
   ###### Assess model accuracy ######
@@ -168,33 +168,33 @@ p5 <- list(
   ## Plots
   # Bar plot of accuracy through time, by  year
   tar_target(p5_nldas_accuracy_year_png,
-             plot_evaluation_barplot(p5_nldas_accuracy_year, driver= 'NLDAS', 
-                                     y_var = 'rmse', y_label = 'rmse', x_var = 'year', 
-                                     faceting_variable = 'depth_class',
+             plot_evaluation_barplot(p5_nldas_accuracy_year, num_eval_sites = length(p5_eval_sites),
+                                     driver= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'year', faceting_variable = 'depth_class',
                                      outfile = '5_evaluate/out/nldas_accuracy_year.png'),
              format = 'file'),
   
   # Bar plot of accuracy through time, by doy
   tar_target(p5_nldas_accuracy_doy_png,
-             plot_evaluation_barplot(p5_nldas_accuracy_doy, driver= 'NLDAS', 
-                                     y_var = 'rmse', y_label = 'rmse', x_var = 'doy_bin', 
-                                     faceting_variable = 'depth_class',
+             plot_evaluation_barplot(p5_nldas_accuracy_doy, num_eval_sites = length(p5_eval_sites),
+                                     driver= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'doy_bin', faceting_variable = 'depth_class',
                                      outfile = '5_evaluate/out/nldas_accuracy_doy.png'),
              format = 'file'),
   
   # Bar plot of accuracy by season
   tar_target(p5_nldas_accuracy_season_png,
-             plot_evaluation_barplot(p5_nldas_accuracy_season, driver= 'NLDAS', 
-                                     y_var = 'rmse', y_label = 'rmse', x_var = 'season', 
-                                     faceting_variable = 'depth_class',
+             plot_evaluation_barplot(p5_nldas_accuracy_season, num_eval_sites = length(p5_eval_sites),
+                                     driver= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'season', faceting_variable = 'depth_class',
                                      outfile = '5_evaluate/out/nldas_accuracy_season.png'),
              format = 'file'),
   
   # Bar plot of accuracy for 2-degree temperature bins
   tar_target(p5_nldas_accuracy_temp_png,
-             plot_evaluation_barplot(p5_nldas_accuracy_temp, driver= 'NLDAS', 
-                                     y_var = 'rmse', y_label = 'rmse', x_var = 'temp_bin', 
-                                     faceting_variable = 'depth_class',
+             plot_evaluation_barplot(p5_nldas_accuracy_temp, num_eval_sites = length(p5_eval_sites),
+                                     driver= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'temp_bin', faceting_variable = 'depth_class',
                                      outfile = '5_evaluate/out/nldas_accuracy_temp.png'),
              format = 'file')
 )

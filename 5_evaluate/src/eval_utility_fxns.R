@@ -163,6 +163,7 @@ calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
 #' specified x and y variables
 #' @param plot_df a tibble of the matched model predictions and observations,
 #' along with grouping variables for evaluation
+#' @param num_eval_sites The number of unique evaluation sites 
 #' @param driver the name of the driver used to generate the
 #' model predictions
 #' @param y_var the variable for the y-axis of the plot
@@ -171,11 +172,12 @@ calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
 #' @faceting_variable variable to use for faceting the plot
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, faceting_variable, outfile) {
+plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver, y_var, y_label, x_var, faceting_variable, outfile) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
-    labs(title= sprintf("%s predictions: %s by %s", driver, y_var, x_var), 
+    labs(title = paste(sprintf("%s predictions: %s by %s", driver, y_var, x_var),
+                       sprintf("Total # of evaluation sites: %s", num_eval_sites), sep ='\n'), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
     facet_wrap(~get(faceting_variable), nrow = 2) +
