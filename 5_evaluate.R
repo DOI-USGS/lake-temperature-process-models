@@ -70,12 +70,6 @@ p5 <- list(
   
   ###### Assess model bias ######
   
-  # Bias through time - year
-  tar_target(p5_gcm_surface_bias_year,
-             calc_bias(p5_gcm_pred_obs_eval_surface_groups, grouping_var = 'year', 
-                       driver = unique(p5_gcm_pred_obs_eval_surface_groups$driver)),
-             pattern = map(p5_gcm_pred_obs_eval_surface_groups)),
-
   # Bias through time - doy
   tar_target(p5_gcm_surface_bias_doy,
              calc_bias(p5_gcm_pred_obs_eval_surface_groups, grouping_var = 'doy_bin',
@@ -95,14 +89,6 @@ p5 <- list(
              pattern = map(p5_gcm_pred_obs_eval_surface_groups)),
   
   ## Plots
-  # Bar plot of bias through time, by  year
-  tar_target(p5_gcm_surface_bias_year_png,
-             plot_evaluation_barplot(p5_gcm_surface_bias_year, driver= 'GCM', 
-                                     y_var = 'bias', y_label = 'predicted - observed', x_var = 'year', 
-                                     depth_class='surface', faceting_variable = 'driver',
-                                     outfile = '5_evaluate/out/GCMs_surface_bias_year.png'),
-             format = 'file'),
-  
   # Bar plot of bias through time, by doy
   tar_target(p5_gcm_surface_bias_doy_png,
              plot_evaluation_barplot(p5_gcm_surface_bias_doy, driver= 'GCM',
