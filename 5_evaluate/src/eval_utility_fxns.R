@@ -131,6 +131,10 @@ prep_data_for_eval <- function(pred_obs, lake_depths, surface_max_depth, bottom_
 #' @param depth_class the depth bin for the matched `eval_pred_obs`
 #' @return
 calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
+  # confirm that only matched pred-obs for a single depth class were provided
+  stopifnot(length(depth_class) == 1)
+  
+  # calculate bias
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
     summarize(bias = median(pred_diff, na.rm=TRUE),
@@ -150,6 +154,10 @@ calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
 #' @return a tibble grouped by the grouping_var, with a column
 #' for rmse
 calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
+  # confirm that only matched pred-obs for a single depth class were provided
+  stopifnot(length(depth_class) == 1)
+  
+  # calculate rmse
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
     summarize(rmse = sqrt(mean((pred_diff)^2, na.rm=TRUE)),
