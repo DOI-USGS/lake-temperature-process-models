@@ -71,7 +71,8 @@ match_pred_obs <- function(preds_file, eval_obs) {
       mutate(obs_1d, pred = NA)
     })
     return(interp_1d)
-  }))
+  })) %>%
+    filter(!is.na(pred)) # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds predicted depth)
   
   return(pred_obs)
 }
@@ -79,12 +80,15 @@ match_pred_obs <- function(preds_file, eval_obs) {
 #' @title prep pred-obs data for evaluation
 #' @description add grouping variables to matched pred-obs for evaluation.
 #' @param pred_obs the tibble of matched observations and predictions
-#' @param surface_cutoff_depth maximum depth for which predictions are
+#' @param lake_depths tibble of lake depths for evluation sites
+#' @param surface_max_depth maximum depth for which predictions are
 #' considered to be in the 'surface' depth class. Currently this is set
 #' as a global value, and is not lake-specific
-#' @param middle_cutoff_depth maximum depth for which predictions are
-#' considered to be in the 'middle' depth class. Currently this is set
-#' as a global value, and is not lake-specific
+#' @param bottom_depth_factor a factor indicating the proportion
+#' of the water column considered to be *outside* of the 'bottom' depth 
+#' class. When multiplied by each lake's depth, the resulting value is the 
+#' minimum depth for which predictions for each lake are considered to be 
+#' in the 'bottom' depth class
 #' @param doy_bin_size # of days to include in each doy bin
 #' @param temp_bin_size # of degrees to include in each temperature bin
 #' @return a tibble of matched predictions and observations with the 
@@ -92,15 +96,17 @@ match_pred_obs <- function(preds_file, eval_obs) {
 #' depth_class (surface, middle, or bottom), year, doy, doy_bin (size 
 #' set by `doy_bin_size`), and season of each pred-obs pair, and the 
 #' temperature bin (size set by `temp_bin_size`) into which each observation falls 
-prep_data_for_eval <- function(pred_obs, surface_cutoff_depth, middle_cutoff_depth, doy_bin_size, temp_bin_size) {
+prep_data_for_eval <- function(pred_obs, lake_depths, surface_max_depth, bottom_depth_factor, doy_bin_size, temp_bin_size) {
   
   eval_pred_obs <- pred_obs %>%
+    left_join(lake_depths, by='site_id') %>%
     mutate(pred_diff = pred - obs,
            depth_class = case_when(
-             depth <= surface_cutoff_depth ~ 'surface',
-             depth > surface_cutoff_depth & depth <= middle_cutoff_depth ~ 'middle',
-             TRUE ~ 'bottom'
+             depth <= surface_max_depth ~ 'surface',
+             depth >= (bottom_depth_factor * lake_depth) ~ 'bottom',
+             TRUE ~ 'middle'
            ),
+           depth_class = factor(depth_class,levels=c('surface','middle','bottom')),
            year = year(time),
            doy = yday(time),
            doy_bin = doy_bin_size*ceiling(doy/doy_bin_size),
@@ -115,20 +121,26 @@ prep_data_for_eval <- function(pred_obs, surface_cutoff_depth, middle_cutoff_dep
   return(eval_pred_obs)
 }
 
-#' @title Calcuate bias
+#' @title Calculate bias
 #' @description Calculate the bias of model predictions over a 
 #' specified `grouping_var`
 #' @param eval_pred_obs a tibble of the matched model predictions and 
 #' observations, along with grouping variables for evaluation
-#' @param grouping_var the variable by which to group `pred-obs`
+#' @param grouping_var the variable by which to group `eval_pred_obs`
 #' before calculating the bias
+#' @param depth_class the depth bin for the matched `eval_pred_obs`
 #' @return
-calc_bias <- function(eval_pred_obs, grouping_var) {
+calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
+  # confirm that only matched pred-obs for a single depth class were provided
+  stopifnot(length(depth_class) == 1)
+  
+  # calculate bias
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
     summarize(bias = median(pred_diff, na.rm=TRUE),
               n_dates = n(),
-              n_sites = length(unique(site_id)))
+              n_sites = length(unique(site_id))) %>%
+    mutate(depth_class = depth_class, .before=1)
 }
 
 #' @title Calculate rmse
@@ -136,16 +148,22 @@ calc_bias <- function(eval_pred_obs, grouping_var) {
 #' specified `grouping_var`
 #' @param eval_pred_obs a tibble of the matched model predictions and 
 #' observations, along with grouping variables for evaluation
-#' @param grouping_var the variable by which to group `pred-obs`
+#' @param grouping_var the variable by which to group `eval_pred_obs`
 #' before calculating the rmse
+#' @param depth_class the depth bin for the matched `eval_pred_obs`
 #' @return a tibble grouped by the grouping_var, with a column
 #' for rmse
-calc_rmse <- function(eval_pred_obs, grouping_var) {
+calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
+  # confirm that only matched pred-obs for a single depth class were provided
+  stopifnot(length(depth_class) == 1)
+  
+  # calculate rmse
   eval_pred_obs %>%
     group_by(!!sym(grouping_var)) %>%
     summarize(rmse = sqrt(mean((pred_diff)^2, na.rm=TRUE)),
               n_dates = n(),
-              n_sites = length(unique(site_id)))
+              n_sites = length(unique(site_id))) %>%
+    mutate(depth_class = depth_class, .before=1)
 }
 
 #' @title Plot evaluation metrics as a bar plot
@@ -153,24 +171,27 @@ calc_rmse <- function(eval_pred_obs, grouping_var) {
 #' specified x and y variables
 #' @param plot_df a tibble of the matched model predictions and observations,
 #' along with grouping variables for evaluation
+#' @param num_eval_sites The number of unique evaluation sites 
 #' @param driver the name of the driver used to generate the
 #' model predictions
 #' @param y_var the variable for the y-axis of the plot
 #' @param y_label the label for the y-axis of the plot
 #' @param x_var the variable for the x-axis of the plot
-#' @param depth_class depth_class of the pred-obs (surface, middle,
-#' or bottom) that are being plotted.
+#' @faceting_variable variable to use for faceting the plot
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, driver, y_var, y_label, x_var, depth_class, outfile) {
+plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver, y_var, y_label, x_var, faceting_variable, 
+                                    outfile, plot_dpi = 300, plot_width = 10, plot_height = 8) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
-    labs(title= sprintf("%s %s predictions: %s by %s", driver, depth_class, y_var, x_var), 
+    labs(title = paste(sprintf("%s predictions: %s by %s", driver, y_var, x_var),
+                       sprintf("Total # of evaluation sites: %s", num_eval_sites), sep ='\n'), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
+    facet_wrap(~get(faceting_variable), nrow = 2) +
     theme_bw()
   
-  ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=6)
+  ggsave(filename=outfile, plot=bar_plot, dpi=plot_dpi, width=plot_width, height=plot_height)
   return(outfile)
 }
