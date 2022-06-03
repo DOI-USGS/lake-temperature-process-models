@@ -167,7 +167,7 @@ p5 <- list(
   # Write matched NLDAS pred-obs to file
   tar_target(p5_nldas_pred_obs_csv,
              {
-               outfile <- '5_evaluate/out/nldas_matched_to_observations.csv'
+               outfile <- '5_evaluate/out/NLDAS_matched_to_observations.csv'
                readr::write_csv(p5_nldas_pred_obs, outfile)
                return(outfile)
              },
@@ -208,7 +208,6 @@ p5 <- list(
   ###### Assess model bias ######
   
   # Bias through time - year
-
   tar_target(p5_nldas_bias_year,
              calc_bias(p5_nldas_pred_obs_eval_groups, grouping_var = 'year', driver = 'NLDAS',
                        depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
@@ -238,7 +237,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_bias_year, num_eval_sites = length(p5_nldas_eval_sites), 
                                      driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
                                      x_var = 'year', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_bias_year.png'),
+                                     outfile = '5_evaluate/out/NLDAS_bias_year.png'),
              format = 'file'),
   
   # Bar plot of bias through time, by doy
@@ -246,7 +245,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_bias_doy,  num_eval_sites = length(p5_nldas_eval_sites), 
                                      driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
                                      x_var = 'doy_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_bias_doy.png',
+                                     outfile = '5_evaluate/out/NLDAS_bias_doy.png',
                                      plot_width = 12),
              format = 'file'),
   
@@ -255,7 +254,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_bias_season, num_eval_sites = length(p5_nldas_eval_sites), 
                                      driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
                                      x_var = 'season', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_bias_season.png',
+                                     outfile = '5_evaluate/out/NLDAS_bias_season.png',
                                      plot_width = 6),
              format = 'file'),
   
@@ -264,7 +263,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_bias_temp, num_eval_sites = length(p5_nldas_eval_sites),
                                      driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
                                      x_var = 'temp_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_bias_temp.png'),
+                                     outfile = '5_evaluate/out/NLDAS_bias_temp.png'),
              format = 'file'),
   
   ###### Assess model accuracy ######
@@ -300,7 +299,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_accuracy_year, num_eval_sites = length(p5_nldas_eval_sites),
                                      driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
                                      x_var = 'year', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_accuracy_year.png'),
+                                     outfile = '5_evaluate/out/NLDAS_accuracy_year.png'),
              format = 'file'),
   
   # Bar plot of accuracy through time, by doy
@@ -308,7 +307,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_accuracy_doy, num_eval_sites = length(p5_nldas_eval_sites),
                                      driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
                                      x_var = 'doy_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_accuracy_doy.png',
+                                     outfile = '5_evaluate/out/NLDAS_accuracy_doy.png',
                                      plot_width = 12),
              format = 'file'),
   
@@ -317,7 +316,7 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_accuracy_season, num_eval_sites = length(p5_nldas_eval_sites),
                                      driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
                                      x_var = 'season', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_accuracy_season.png',
+                                     outfile = '5_evaluate/out/NLDAS_accuracy_season.png',
                                      plot_width = 6),
              format = 'file'),
   
@@ -326,6 +325,6 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_accuracy_temp, num_eval_sites = length(p5_nldas_eval_sites),
                                      driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
                                      x_var = 'temp_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_accuracy_temp.png'),
+                                     outfile = '5_evaluate/out/NLDAS_accuracy_temp.png'),
              format = 'file')
 )
