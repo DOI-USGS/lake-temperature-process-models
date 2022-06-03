@@ -27,9 +27,9 @@ p2 <- list(
     pattern = map(p1_gcm_model_config_groups, p1_gcm_nml_objects)), # W/ all runs for each lake in 1 config group, can map over nml objects w/o cross(), as is same length as # of config groups
   
   # For bundling of results in 3_extract
-  # Group model runs by lake id
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
+  # Group model runs by lake id
   # Filter to groups where all model runs were successful 
   # (if any failed, the group is filtered out)
   tar_target(
@@ -63,10 +63,11 @@ p2 <- list(
     pattern = map(p1_nldas_model_config, p1_nldas_nml_objects)),
   
   # For bundling of results by lake in 3_extract
-  # Group model runs by lake id
   # Discard the glm diagnostics so they don't trigger rebuilds
   # even when the export_fl_hash is unchanged
-  # Filter to successful model runs
+  # Group model runs by lake id
+  # Filter to groups where all model runs were successful 
+  # (if any failed, the group is filtered out)
   tar_target(
     p2_nldas_glm_uncalibrated_run_groups,
     p2_nldas_glm_uncalibrated_runs %>%
