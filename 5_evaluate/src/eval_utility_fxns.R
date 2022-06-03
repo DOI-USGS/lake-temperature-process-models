@@ -180,7 +180,8 @@ calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
 #' @faceting_variable variable to use for faceting the plot
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver, y_var, y_label, x_var, faceting_variable, outfile) {
+plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver, y_var, y_label, x_var, faceting_variable, 
+                                    outfile, plot_dpi = 300, plot_width = 10, plot_height = 8) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
@@ -191,6 +192,6 @@ plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver, y_var, y_la
     facet_wrap(~get(faceting_variable), nrow = 2) +
     theme_bw()
   
-  ggsave(filename=outfile, plot=bar_plot, dpi=300, width=10, height=8)
+  ggsave(filename=outfile, plot=bar_plot, dpi=plot_dpi, width=plot_width, height=plot_height)
   return(outfile)
 }

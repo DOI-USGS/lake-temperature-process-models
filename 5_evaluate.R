@@ -120,7 +120,8 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_bias_doy,  num_eval_sites = length(p5_eval_sites), 
                                      driver= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
                                      x_var = 'doy_bin', faceting_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_bias_doy.png'),
+                                     outfile = '5_evaluate/out/nldas_bias_doy.png',
+                                     plot_width = 12),
              format = 'file'),
   
   # Bar plot of bias by season
@@ -128,7 +129,8 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_bias_season, num_eval_sites = length(p5_eval_sites), 
                                      driver= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
                                      x_var = 'season', faceting_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_bias_season.png'),
+                                     outfile = '5_evaluate/out/nldas_bias_season.png',
+                                     plot_width = 6),
              format = 'file'),
   
   # Bar plot of bias for 2-degree temperature bins
@@ -179,7 +181,8 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_accuracy_doy, num_eval_sites = length(p5_eval_sites),
                                      driver= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
                                      x_var = 'doy_bin', faceting_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_accuracy_doy.png'),
+                                     outfile = '5_evaluate/out/nldas_accuracy_doy.png',
+                                     plot_width = 12),
              format = 'file'),
   
   # Bar plot of accuracy by season
@@ -187,7 +190,8 @@ p5 <- list(
              plot_evaluation_barplot(p5_nldas_accuracy_season, num_eval_sites = length(p5_eval_sites),
                                      driver= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
                                      x_var = 'season', faceting_variable = 'depth_class',
-                                     outfile = '5_evaluate/out/nldas_accuracy_season.png'),
+                                     outfile = '5_evaluate/out/nldas_accuracy_season.png',
+                                     plot_width = 6),
              format = 'file'),
   
   # Bar plot of accuracy for 2-degree temperature bins
