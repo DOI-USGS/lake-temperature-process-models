@@ -22,10 +22,6 @@ p5 <- list(
                             gcm_dates_contemporary$driver_end_date, min_obs_dates = 10)
              }),
   
-  # Get vector of evaluation sites, based on availability of observations
-  tar_target(p5_gcm_eval_sites,
-             p5_gcm_obs_for_eval %>% pull(site_id) %>% unique()),
-  
   # Group filtered obs by site, set up tar_group()
   tar_target(p5_gcm_obs_for_eval_groups,
              p5_gcm_obs_for_eval %>%
@@ -49,68 +45,87 @@ p5 <- list(
              },
              format = 'file'),
   
+  # Get vector of GCM evaluation sites, based on matched pred-obs
+  tar_target(p5_gcm_eval_sites,
+             p5_gcm_pred_obs %>% pull(site_id) %>% unique()),
+  
+  # Pull out lake depth for each GCM evaluation site
+  tar_target(
+    p5_gcm_depths,
+    purrr::map_df(p5_gcm_eval_sites, function(site_id) {
+      site_nml <- p1_gcm_nml_list_subset[[site_id]]
+      tibble(
+        site_id = site_id,
+        lake_depth = site_nml$lake_depth
+      )
+    })
+  ),
+  
   # Prep matched preds for evaluation
   # Add pred_diff column (pred - obs)
   # Set up variables for which bias/accuracy will be calculated
   # Add fields for year, depth_class, doy, doy_bin, season, temp_bin
   tar_target(p5_gcm_pred_obs_eval,
-             prep_data_for_eval(p5_gcm_pred_obs, surface_cutoff_depth = 1, middle_cutoff_depth = 5,
-                                doy_bin_size = 5, temp_bin_size = 2)),
+             prep_data_for_eval(p5_gcm_pred_obs, p5_gcm_depths, surface_max_depth = 1, 
+                                bottom_depth_factor = 0.85, doy_bin_size = 5, temp_bin_size = 2)),
   
-  # Filter to only surface pred-obs
-  tar_target(p5_gcm_pred_obs_eval_surface,
-             filter(p5_gcm_pred_obs_eval, depth_class=='surface')),
-  
-  # Group by GCM for assessing bias
-  tar_target(p5_gcm_pred_obs_eval_surface_groups,
-             p5_gcm_pred_obs_eval_surface %>%
-               group_by(driver) %>%
+  # Filter GCM evaluation pred-obs to surface and bottom predictions and group by driver and depth class for evaluation
+  tar_target(p5_gcm_pred_obs_eval_groups,
+             p5_gcm_pred_obs_eval %>%
+               filter(depth_class %in% c('surface','bottom')) %>%
+               group_by(driver, depth_class) %>%
                tar_group(),
              iteration = "group"),
   
   ###### Assess model bias ######
   
   # Bias through time - doy
-  tar_target(p5_gcm_surface_bias_doy,
-             calc_bias(p5_gcm_pred_obs_eval_surface_groups, grouping_var = 'doy_bin',
-                       driver = unique(p5_gcm_pred_obs_eval_surface_groups$driver)),
-             pattern = map(p5_gcm_pred_obs_eval_surface_groups)),
+  tar_target(p5_gcm_bias_doy,
+             calc_bias(p5_gcm_pred_obs_eval_groups, grouping_var = 'doy_bin',
+                       driver = unique(p5_gcm_pred_obs_eval_groups$driver),
+                       depth_class = unique(p5_gcm_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_gcm_pred_obs_eval_groups)),
   
   # Bias by season
-  tar_target(p5_gcm_surface_bias_season,
-             calc_bias(p5_gcm_pred_obs_eval_surface_groups, grouping_var = 'season',
-                       driver = unique(p5_gcm_pred_obs_eval_surface_groups$driver)),
-             pattern = map(p5_gcm_pred_obs_eval_surface_groups)),
+  tar_target(p5_gcm_bias_season,
+             calc_bias(p5_gcm_pred_obs_eval_groups, grouping_var = 'season',
+                       driver = unique(p5_gcm_pred_obs_eval_groups$driver),
+                       depth_class = unique(p5_gcm_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_gcm_pred_obs_eval_groups)),
   
   # Bias for specific temperature ranges
-  tar_target(p5_gcm_surface_bias_temp,
-             calc_bias(p5_gcm_pred_obs_eval_surface_groups, grouping_var = 'temp_bin',
-                       driver = unique(p5_gcm_pred_obs_eval_surface_groups$driver)),
-             pattern = map(p5_gcm_pred_obs_eval_surface_groups)),
+  tar_target(p5_gcm_bias_temp,
+             calc_bias(p5_gcm_pred_obs_eval_groups, grouping_var = 'temp_bin',
+                       driver = unique(p5_gcm_pred_obs_eval_groups$driver),
+                       depth_class = unique(p5_gcm_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_gcm_pred_obs_eval_groups)),
   
   ## Plots
   # Bar plot of bias through time, by doy
-  tar_target(p5_gcm_surface_bias_doy_png,
-             plot_evaluation_barplot(p5_gcm_surface_bias_doy, driver= 'GCM',
-                                     y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy_bin',
-                                     depth_class='surface', faceting_variable = 'driver',
-                                     outfile = '5_evaluate/out/GCMs_surface_bias_doy.png'),
+  tar_target(p5_gcm_bias_doy_png,
+             plot_evaluation_barplot(p5_gcm_bias_doy, num_eval_sites = length(p5_gcm_eval_sites), 
+                                     driver_type= 'GCM', y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy_bin',
+                                     facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/GCMs_bias_doy.png',
+                                     plot_width = 22),
              format = 'file'),
 
   # Bar plot of bias by season
-  tar_target(p5_gcm_surface_bias_season_png,
-             plot_evaluation_barplot(p5_gcm_surface_bias_season, driver= 'GCM',
-                                     y_var = 'bias', y_label = 'predicted - observed', x_var = 'season',
-                                     depth_class='surface', faceting_variable = 'driver',
-                                     outfile = '5_evaluate/out/GCMs_surface_bias_season.png'),
+  tar_target(p5_gcm_bias_season_png,
+             plot_evaluation_barplot(p5_gcm_bias_season, num_eval_sites = length(p5_gcm_eval_sites),
+                                     driver_type= 'GCM', y_var = 'bias', y_label = 'predicted - observed', x_var = 'season',
+                                     facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/GCMs_bias_season.png',
+                                     plot_width = 14),
              format = 'file'),
 
   # Bar plot of bias for 2-degree temperature bins
-  tar_target(p5_gcm_surface_bias_temp_png,
-             plot_evaluation_barplot(p5_gcm_surface_bias_temp, driver= 'GCM',
-                                     y_var = 'bias', y_label = 'predicted - observed', x_var = 'temp_bin',
-                                     depth_class='surface', faceting_variable = 'driver',
-                                     outfile = '5_evaluate/out/GCMs_surface_bias_temp.png'),
+  tar_target(p5_gcm_bias_temp_png,
+             plot_evaluation_barplot(p5_gcm_bias_temp, num_eval_sites = length(p5_gcm_eval_sites), 
+                                     driver_type= 'GCM', y_var = 'bias', y_label = 'predicted - observed', x_var = 'temp_bin',
+                                     facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/GCMs_bias_temp.png',
+                                     plot_width = 16),
              format = 'file'),
   
   
@@ -119,8 +134,13 @@ p5 <- list(
   ###### Prep predictions and observations ######
   
   # Get vector of site_ids for which we have NLDAS output
+  # For now, evaluate only predictions for lakes within CASC states
+  tar_target(p5_CASC_states,
+             c('ND','SD','IA','MI','IN','IL','WI','MN','MO','AR','OH')),
   tar_target(p5_nldas_export_site_ids,
              p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+               filter(state %in% p5_CASC_states) %>%
+               arrange(site_id) %>%
                pull(site_id)),
   
   # Prep site observations
@@ -129,10 +149,6 @@ p5 <- list(
   tar_target(p5_nldas_obs_for_eval,
              get_eval_obs(p1_obs_feather, p5_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
                           p1_nldas_dates$driver_end_date, min_obs_dates = 10)),
-  
-  # Get vector of evaluation sites, based on availability of observations
-  tar_target(p5_nldas_eval_sites,
-             p5_nldas_obs_for_eval %>% pull(site_id) %>% unique()),
 
   # Group filtered obs by site, set up tar_group()
   tar_target(p5_nldas_obs_for_eval_groups,
@@ -157,117 +173,159 @@ p5 <- list(
              },
              format = 'file'),
   
+  # Get vector of NLDAS evaluation sites, based on matched pred-obs
+  tar_target(p5_nldas_eval_sites,
+             p5_nldas_pred_obs %>% pull(site_id) %>% unique()),
+  
+  # Pull out lake depth for each NLDAS evaluation site
+  tar_target(
+    p5_nldas_depths,
+    purrr::map_df(p5_nldas_eval_sites, function(site_id) {
+      site_nml <- p1_nldas_nml_list_subset[[site_id]]
+      tibble(
+        site_id = site_id,
+        lake_depth = site_nml$lake_depth
+      )
+    })
+  ),
+  
   # Prep matched preds for evaluation
   # Add pred_diff column (pred - obs)
   # Set up variables for which bias/accuracy will be calculated
   # Add fields for year, depth_class, doy, doy_bin, season, temp_bin
   tar_target(p5_nldas_pred_obs_eval,
-             prep_data_for_eval(p5_nldas_pred_obs, surface_cutoff_depth = 1, middle_cutoff_depth = 5,
-                                doy_bin_size = 5, temp_bin_size = 2)),
+             prep_data_for_eval(p5_nldas_pred_obs, p5_nldas_depths, surface_max_depth = 1, 
+                                bottom_depth_factor = 0.85, doy_bin_size = 5, temp_bin_size = 2)),
   
-  # Filter to only surface pred-obs
-  tar_target(p5_nldas_pred_obs_eval_surface,
-             filter(p5_nldas_pred_obs_eval, depth_class=='surface')),
+  # Filter NLDAS evaluation pred-obs to surface and bottom predictions and group by depth class for evaluation
+  tar_target(p5_nldas_pred_obs_eval_groups,
+             p5_nldas_pred_obs_eval %>%
+               filter(depth_class %in% c('surface','bottom')) %>%
+               group_by(depth_class) %>%
+               tar_group(),
+             iteration = "group"),
   
   ###### Assess model bias ######
   
   # Bias through time - year
-  tar_target(p5_nldas_surface_bias_year,
-             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'year', driver = 'NLDAS')),
+
+  tar_target(p5_nldas_bias_year,
+             calc_bias(p5_nldas_pred_obs_eval_groups, grouping_var = 'year', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   # Bias through time - doy
-  tar_target(p5_nldas_surface_bias_doy,
-             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy_bin', driver = 'NLDAS')),
+  tar_target(p5_nldas_bias_doy,
+             calc_bias(p5_nldas_pred_obs_eval_groups, grouping_var = 'doy_bin', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   # Bias by season
-  tar_target(p5_nldas_surface_bias_season,
-             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'season', driver = 'NLDAS')),
+  tar_target(p5_nldas_bias_season,
+             calc_bias(p5_nldas_pred_obs_eval_groups, grouping_var = 'season', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
 
   # Bias for specific temperature ranges
-  tar_target(p5_nldas_surface_bias_temp,
-             calc_bias(p5_nldas_pred_obs_eval_surface, grouping_var = 'temp_bin', driver = 'NLDAS')),
+  tar_target(p5_nldas_bias_temp,
+             calc_bias(p5_nldas_pred_obs_eval_groups, grouping_var = 'temp_bin', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   ## Plots
   # Bar plot of bias through time, by  year
-  tar_target(p5_nldas_surface_bias_year_png,
-             plot_evaluation_barplot(p5_nldas_surface_bias_year, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'year', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_bias_year.png'),
+  tar_target(p5_nldas_bias_year_png,
+             plot_evaluation_barplot(p5_nldas_bias_year, num_eval_sites = length(p5_nldas_eval_sites), 
+                                     driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'year', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_year.png'),
              format = 'file'),
   
   # Bar plot of bias through time, by doy
-  tar_target(p5_nldas_surface_bias_doy_png,
-             plot_evaluation_barplot(p5_nldas_surface_bias_doy, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'doy_bin', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_bias_doy.png'),
+  tar_target(p5_nldas_bias_doy_png,
+             plot_evaluation_barplot(p5_nldas_bias_doy,  num_eval_sites = length(p5_nldas_eval_sites), 
+                                     driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'doy_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_doy.png',
+                                     plot_width = 12),
              format = 'file'),
   
   # Bar plot of bias by season
-  tar_target(p5_nldas_surface_bias_season_png,
-             plot_evaluation_barplot(p5_nldas_surface_bias_season, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'season', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_bias_season.png'),
+  tar_target(p5_nldas_bias_season_png,
+             plot_evaluation_barplot(p5_nldas_bias_season, num_eval_sites = length(p5_nldas_eval_sites), 
+                                     driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'season', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_season.png',
+                                     plot_width = 6),
              format = 'file'),
   
   # Bar plot of bias for 2-degree temperature bins
-  tar_target(p5_nldas_surface_bias_temp_png,
-             plot_evaluation_barplot(p5_nldas_surface_bias_temp, driver= 'NLDAS', 
-                          y_var = 'bias', y_label = 'predicted - observed', x_var = 'temp_bin', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_bias_temp.png'),
+  tar_target(p5_nldas_bias_temp_png,
+             plot_evaluation_barplot(p5_nldas_bias_temp, num_eval_sites = length(p5_nldas_eval_sites),
+                                     driver_type= 'NLDAS', y_var = 'bias', y_label = 'predicted - observed', 
+                                     x_var = 'temp_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_bias_temp.png'),
              format = 'file'),
   
   ###### Assess model accuracy ######
   
   # # Accuracy through time - year
-  tar_target(p5_nldas_surface_accuracy_year,
-             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'year', driver = 'NLDAS')),
+
+  tar_target(p5_nldas_accuracy_year,
+             calc_rmse(p5_nldas_pred_obs_eval_groups, grouping_var = 'year', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   # Accuracy through time - doy
-  tar_target(p5_nldas_surface_accuracy_doy,
-             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'doy_bin', driver = 'NLDAS')),
+  tar_target(p5_nldas_accuracy_doy,
+             calc_rmse(p5_nldas_pred_obs_eval_groups, grouping_var = 'doy_bin', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   # Accuracy by season
-  tar_target(p5_nldas_surface_accuracy_season,
-             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'season', driver = 'NLDAS')),
+  tar_target(p5_nldas_accuracy_season,
+             calc_rmse(p5_nldas_pred_obs_eval_groups, grouping_var = 'season', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   # Accuracy for specific temperature ranges
-  tar_target(p5_nldas_surface_accuracy_temp,
-             calc_rmse(p5_nldas_pred_obs_eval_surface, grouping_var = 'temp_bin', driver = 'NLDAS')),
+  tar_target(p5_nldas_accuracy_temp,
+             calc_rmse(p5_nldas_pred_obs_eval_groups, grouping_var = 'temp_bin', driver = 'NLDAS',
+                       depth_class = unique(p5_nldas_pred_obs_eval_groups$depth_class)),
+             pattern = map(p5_nldas_pred_obs_eval_groups)),
   
   ## Plots
   # Bar plot of accuracy through time, by  year
-  tar_target(p5_nldas_surface_accuracy_year_png,
-             plot_evaluation_barplot(p5_nldas_surface_accuracy_year, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'year', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_accuracy_year.png'),
+  tar_target(p5_nldas_accuracy_year_png,
+             plot_evaluation_barplot(p5_nldas_accuracy_year, num_eval_sites = length(p5_nldas_eval_sites),
+                                     driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'year', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_accuracy_year.png'),
              format = 'file'),
   
   # Bar plot of accuracy through time, by doy
-  tar_target(p5_nldas_surface_accuracy_doy_png,
-             plot_evaluation_barplot(p5_nldas_surface_accuracy_doy, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'doy_bin', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_accuracy_doy.png'),
+  tar_target(p5_nldas_accuracy_doy_png,
+             plot_evaluation_barplot(p5_nldas_accuracy_doy, num_eval_sites = length(p5_nldas_eval_sites),
+                                     driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'doy_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_accuracy_doy.png',
+                                     plot_width = 12),
              format = 'file'),
   
   # Bar plot of accuracy by season
-  tar_target(p5_nldas_surface_accuracy_season_png,
-             plot_evaluation_barplot(p5_nldas_surface_accuracy_season, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'season', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_accuracy_season.png'),
+  tar_target(p5_nldas_accuracy_season_png,
+             plot_evaluation_barplot(p5_nldas_accuracy_season, num_eval_sites = length(p5_nldas_eval_sites),
+                                     driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'season', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_accuracy_season.png',
+                                     plot_width = 6),
              format = 'file'),
   
   # Bar plot of accuracy for 2-degree temperature bins
-  tar_target(p5_nldas_surface_accuracy_temp_png,
-             plot_evaluation_barplot(p5_nldas_surface_accuracy_temp, driver= 'NLDAS', 
-                          y_var = 'rmse', y_label = 'rmse', x_var = 'temp_bin', 
-                          depth_class='surface', faceting_variable = 'driver',
-                          outfile = '5_evaluate/out/nldas_surface_accuracy_temp.png'),
+  tar_target(p5_nldas_accuracy_temp_png,
+             plot_evaluation_barplot(p5_nldas_accuracy_temp, num_eval_sites = length(p5_nldas_eval_sites),
+                                     driver_type= 'NLDAS', y_var = 'rmse', y_label = 'rmse', 
+                                     x_var = 'temp_bin', facet_column_variable = 'driver', facet_row_variable = 'depth_class',
+                                     outfile = '5_evaluate/out/nldas_accuracy_temp.png'),
              format = 'file')
 )
