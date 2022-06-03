@@ -9,7 +9,7 @@ p5 <- list(
   ###### Prep predictions and observations ######
   
   # Get vector of site_ids for which we have NLDAS output
-  # For now, evaluation only predictions for lakes within CASC states
+  # For now, evaluate only predictions for lakes within CASC states
   tar_target(p5_CASC_states,
              c('ND','SD','IA','MI','IN','IL','WI','MN','MO','AR','OH')),
   tar_target(p5_nldas_export_site_ids,
