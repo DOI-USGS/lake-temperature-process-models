@@ -24,10 +24,6 @@ p5 <- list(
   tar_target(p5_obs_for_eval,
              get_eval_obs(p1_obs_feather, p5_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
                           p1_nldas_dates$driver_end_date, min_obs_dates = 10)),
-  
-  # Get vector of evaluation sites, based on availability of observations
-  tar_target(p5_eval_sites,
-             p5_obs_for_eval %>% pull(site_id) %>% unique()),
 
   # Group filtered obs by site, set up tar_group()
   tar_target(p5_obs_for_eval_groups,
@@ -51,6 +47,10 @@ p5 <- list(
                return(outfile)
              },
              format = 'file'),
+  
+  # Get vector of evaluation sites, based on matched pred-obs
+  tar_target(p5_eval_sites,
+             p5_nldas_pred_obs %>% pull(site_id) %>% unique()),
   
   # Pull out lake depth for each evaluation site
   tar_target(
