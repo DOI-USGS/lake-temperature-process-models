@@ -144,7 +144,7 @@ calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
 #' specified `grouping_var`
 #' @param eval_pred_obs a tibble of the matched model predictions and 
 #' observations, along with grouping variables for evaluation
-#' @param grouping_var the variable by which to group `pred-obs`
+#' @param grouping_var the variable by which to group `eval_pred_obs`
 #' before calculating the rmse
 #' @param depth_class the depth bin for the matched `eval_pred_obs`
 #' @return a tibble grouped by the grouping_var, with a column
