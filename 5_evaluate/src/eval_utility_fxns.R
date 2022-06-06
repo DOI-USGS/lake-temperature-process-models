@@ -40,9 +40,10 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
 #' The filepath corresponds to predictions for the site_id associated with `eval_obs`
 #' @param eval_obs temperature observations for a single site to use in evaluation
 #' (in long format).
+#' @param driver weather/climate driver used to generate GLM predictions
 #' @return A tibble with predictions matched to observations (on available dates)
 #' by date and by depth
-match_pred_obs <- function(preds_file, eval_obs) {
+match_pred_obs <- function(preds_file, eval_obs, driver) {
   # Read in model predictions for the current site
   # filter to dates with observations
   # and munge model predictions to long format
@@ -72,7 +73,9 @@ match_pred_obs <- function(preds_file, eval_obs) {
     })
     return(interp_1d)
   })) %>%
-    filter(!is.na(pred)) # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds predicted depth)
+    filter(!is.na(pred)) %>% # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds predicted depth)
+    mutate(driver = driver, .after=site_id) %>%
+    select(-tar_group) # drop tar_group field
   
   return(pred_obs)
 }
@@ -128,9 +131,14 @@ prep_data_for_eval <- function(pred_obs, lake_depths, surface_max_depth, bottom_
 #' observations, along with grouping variables for evaluation
 #' @param grouping_var the variable by which to group `eval_pred_obs`
 #' before calculating the bias
+#' @param driver weather/climate driver used to generate GLM predictions
 #' @param depth_class the depth bin for the matched `eval_pred_obs`
-#' @return
-calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
+#' @return a tibble grouped and summarized by the grouping_var, with 
+#' a row for each group and columns for the bias, # of dates, # of sites, 
+#' driver, and depth class
+calc_bias <- function(eval_pred_obs, grouping_var, driver, depth_class) {
+  # confirm that only matched pred-obs for a single driver were provided
+  stopifnot(length(driver) == 1)
   # confirm that only matched pred-obs for a single depth class were provided
   stopifnot(length(depth_class) == 1)
   
@@ -140,7 +148,7 @@ calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
     summarize(bias = median(pred_diff, na.rm=TRUE),
               n_dates = n(),
               n_sites = length(unique(site_id))) %>%
-    mutate(depth_class = depth_class, .before=1)
+    mutate(driver = driver, depth_class = depth_class, .before=1)
 }
 
 #' @title Calculate rmse
@@ -150,10 +158,14 @@ calc_bias <- function(eval_pred_obs, grouping_var, depth_class) {
 #' observations, along with grouping variables for evaluation
 #' @param grouping_var the variable by which to group `eval_pred_obs`
 #' before calculating the rmse
+#' @param driver weather/climate driver used to generate GLM predictions
+#' @return a tibble grouped and summarized by the grouping_var, with 
+#' a row for each group and columns for the rmse, # of dates, # of sites, 
+#' driver, and depth class
 #' @param depth_class the depth bin for the matched `eval_pred_obs`
-#' @return a tibble grouped by the grouping_var, with a column
-#' for rmse
-calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
+calc_rmse <- function(eval_pred_obs, grouping_var, driver, depth_class) {
+  # confirm that only matched pred-obs for a single driver were provided
+  stopifnot(length(driver) == 1)
   # confirm that only matched pred-obs for a single depth class were provided
   stopifnot(length(depth_class) == 1)
   
@@ -163,7 +175,7 @@ calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
     summarize(rmse = sqrt(mean((pred_diff)^2, na.rm=TRUE)),
               n_dates = n(),
               n_sites = length(unique(site_id))) %>%
-    mutate(depth_class = depth_class, .before=1)
+  mutate(driver = driver, depth_class = depth_class, .before=1)
 }
 
 #' @title Plot evaluation metrics as a bar plot
@@ -172,24 +184,25 @@ calc_rmse <- function(eval_pred_obs, grouping_var, depth_class) {
 #' @param plot_df a tibble of the matched model predictions and observations,
 #' along with grouping variables for evaluation
 #' @param num_eval_sites The number of unique evaluation sites 
-#' @param driver the name of the driver used to generate the
-#' model predictions
+#' @param driver_type the type of driver used to generate the model
+#' predictions (NLDAS or GCM)
 #' @param y_var the variable for the y-axis of the plot
 #' @param y_label the label for the y-axis of the plot
 #' @param x_var the variable for the x-axis of the plot
-#' @faceting_variable variable to use for faceting the plot
+#' @facet_column_variable variable to use for faceting the columns of the plot
+#' @facet_row_variable variable to use for faceting the rows of the plot
 #' @param outfile The filepath for the exported png
 #' @return The filepath of the exported png 
-plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver, y_var, y_label, x_var, faceting_variable, 
-                                    outfile, plot_dpi = 300, plot_width = 10, plot_height = 8) {
+plot_evaluation_barplot <- function(plot_df, num_eval_sites, driver_type, y_var, y_label, x_var, facet_column_variable, 
+                                    facet_row_variable, outfile, plot_dpi = 300, plot_width = 10, plot_height = 8) {
   bar_plot <- plot_df %>%
     ggplot(aes(x = get(x_var), y = get(y_var))) +
     geom_col(fill='cadetblue3', color='cadetblue4') +
-    labs(title = paste(sprintf("%s predictions: %s by %s", driver, y_var, x_var),
+    labs(title = paste(sprintf("%s predictions: %s by %s", driver_type, y_var, x_var),
                        sprintf("Total # of evaluation sites: %s", num_eval_sites), sep ='\n'), 
          x=sprintf("%s", x_var), 
          y=sprintf("%s (\u00b0C)", y_label)) +
-    facet_wrap(~get(faceting_variable), nrow = 2) +
+    facet_grid(get(facet_row_variable) ~ get(facet_column_variable)) +
     theme_bw()
   
   ggsave(filename=outfile, plot=bar_plot, dpi=plot_dpi, width=plot_width, height=plot_height)
