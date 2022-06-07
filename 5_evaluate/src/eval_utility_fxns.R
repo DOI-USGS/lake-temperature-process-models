@@ -119,6 +119,7 @@ prep_data_for_eval <- function(pred_obs, lake_depths, surface_max_depth, bottom_
              doy >= 243 & doy < 335 ~ 'fall',
              TRUE ~ 'winter'
            ),
+           season = factor(season, levels=c('winter','spring','summer','fall')),
            temp_bin = temp_bin_size*ceiling(obs/temp_bin_size))
   
   return(eval_pred_obs)
