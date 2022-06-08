@@ -62,10 +62,10 @@ p1 <- list(
   tar_target(p1_gcm_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
   # Subset lake spatial info to
-  tar_target(p1_lake_centroids_sf,
+  tar_target(p1_gcm_lake_centroids_sf,
              readRDS(p1_lake_centroids_sf_rds) %>%
                arrange(site_id) %>%
-               filter(site_id %in% p1_site_ids)),
+               filter(site_id %in% p1_gcm_site_ids)),
   
   # Specify length of desired burn-in and burn-out periods, in days
   tar_target(p1_gcm_burn_in, 300),
