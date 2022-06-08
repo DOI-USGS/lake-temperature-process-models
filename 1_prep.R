@@ -87,9 +87,14 @@ p1 <- list(
              format = 'file',
              pattern = map(p1_gcm_ncs, p1_gcm_names)),
 
-  # Build GCM model config
-  tar_target(p1_gcm_model_config,
-             build_gcm_model_config(p1_gcm_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates)),
+  # Build GCM model config, grouped by site_id
+  tar_target(p1_gcm_model_config_groups,
+             build_gcm_model_config(p1_gcm_csvs, p1_lake_cell_tile_xwalk_df, p1_gcm_names, p1_gcm_dates) %>%
+               # Grouping by site_id to reduce number of target branches downstream
+               group_by(site_id) %>%
+               tar_group(),
+             iteration = "group"
+  ),
   
   # Set up list of nml objects, with NULL for meteo_fl, and custom depth parameters
   # Transform a single file of all lakes to a single list of all lakes

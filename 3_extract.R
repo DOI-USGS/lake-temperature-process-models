@@ -15,11 +15,12 @@ p3 <- list(
   tar_target(
     p3_gcm_glm_uncalibrated_output_feathers,
     {
-      outfile <- sprintf('3_extract/out/GLM_%s_%s.feather', 
-                         unique(p2_gcm_glm_uncalibrated_run_groups$site_id), 
-                         unique(p2_gcm_glm_uncalibrated_run_groups$driver))
-      arrow::write_feather(p3_gcm_glm_uncalibrated_output, outfile)
-      return(outfile)
+      output_files <- p2_gcm_glm_uncalibrated_run_groups %>% # Already grouped by site_id
+        group_by(driver) %>% # Also group by driver (GCM) for creating export files
+        group_map(~ write_glm_output(.x, outfile_template='3_extract/out/GLM_%s_%s.feather'),
+                  .keep = TRUE) %>%
+        unlist()
+      return(output_files)
     },
     format = 'file',
     pattern = map(p2_gcm_glm_uncalibrated_run_groups, p3_gcm_glm_uncalibrated_output)),

@@ -45,8 +45,8 @@ build_gcm_model_config <- function(gcm_csvs, lake_cell_tile_xwalk, gcm_names, gc
     nesting(gcm_dates)) %>%
     arrange(site_id) %>%
     left_join(meteo_branches, by=c('driver', 'data_cell_no', 'time_period')) %>%
-    select(-data_cell_no) %>%
-    rowwise()
+    select(-data_cell_no)
+  
   return(model_config)
 }
 
