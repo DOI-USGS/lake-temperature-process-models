@@ -1,5 +1,6 @@
 source('3_extract/src/process_glm_output.R')
 source('3_extract/src/build_output_netCDFs.R')
+source('4_visualize/src/plot_data_utility_fxns.R')
 
 p3 <- list(
   ##### Extract GCM model output #####
@@ -8,10 +9,6 @@ p3 <- list(
   # across all three time periods, truncating the output to the valid dates 
   # for each time period (excluding the burn-in and burn-out periods) and
   # saving only the temperature predictions for each depth and ice flags
-  tar_target(
-    p3_gcm_glm_uncalibrated_output,
-    combine_glm_output(p2_gcm_glm_uncalibrated_run_groups),
-    pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
   tar_target(
     p3_gcm_glm_uncalibrated_output_feathers,
     {
@@ -23,7 +20,7 @@ p3 <- list(
       return(output_files)
     },
     format = 'file',
-    pattern = map(p2_gcm_glm_uncalibrated_run_groups, p3_gcm_glm_uncalibrated_output)),
+    pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
   
   # Generate a tibble with a row for each output file
   # that includes the filename and its hash along with the
@@ -49,11 +46,11 @@ p3 <- list(
     format = 'file'
   ),
   
-  # Group output feather tibble by spatial tile number
+  # Group output feather tibble by gcm
   tar_target(
     p3_gcm_glm_uncalibrated_output_feather_groups,
     p3_gcm_glm_uncalibrated_output_feather_tibble %>%
-      group_by(spatial_tile_no) %>%
+      group_by(driver) %>%
       tar_group(),
     iteration = "group"
   ),
@@ -68,7 +65,7 @@ p3 <- list(
                unique()),
   tar_target(p3_gcm_site_coords,
              # Get WGS84 latitude and longitude of lake centroids
-             p1_lake_centroids_sf %>%
+             p1_gcm_lake_centroids_sf %>%
                filter(site_id %in% p3_gcm_export_site_ids) %>%
                mutate(lon = sf::st_coordinates(.)[,1], lat = sf::st_coordinates(.)[,2]) %>%
                sf::st_set_geometry(NULL) %>%
@@ -81,35 +78,23 @@ p3 <- list(
                data_precision = c('float','integer'),
                compression_precision = c('.2','1')
              )),
-  tar_target(
-    p3_gcm_glm_uncalibrated_output_long,
-    p3_gcm_glm_uncalibrated_output %>%
-      pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
-      mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
-      mutate(site_id = p3_gcm_glm_uncalibrated_output_feather_tibble$site_id,
-             driver = p3_gcm_glm_uncalibrated_output_feather_tibble$driver, .before=1),
-    pattern = map(p3_gcm_glm_uncalibrated_output, p3_gcm_glm_uncalibrated_output_feather_tibble)
-  ),
+  # tar_target(
+  #   p3_gcm_glm_uncalibrated_output_long,
+  #   p3_gcm_glm_uncalibrated_output %>%
+  #     pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
+  #     mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
+  #     mutate(site_id = p3_gcm_glm_uncalibrated_output_feather_tibble$site_id,
+  #            driver = p3_gcm_glm_uncalibrated_output_feather_tibble$driver, .before=1),
+  #   pattern = map(p3_gcm_glm_uncalibrated_output, p3_gcm_glm_uncalibrated_output_feather_tibble)
+  # ),
   tar_target(
     p3_gcm_glm_uncalibrated_nc,
     generate_output_nc(
-      nc_file = '3_extract/out/GLM_GCMs.nc', 
-      lake_gcm_info = p3_gcm_glm_uncalibrated_output_feather_tibble,
-      lake_gcm_output = p3_gcm_glm_uncalibrated_output_long, 
+      nc_file = sprintf('3_extract/out/GLM_GCMs_%s.nc', unique(p3_gcm_glm_uncalibrated_output_feather_groups$driver)), 
+      output_info = p3_gcm_glm_uncalibrated_output_feather_groups,
       nc_var_info = p3_nc_var_info,
       site_coords = p3_gcm_site_coords, 
       compression = FALSE),
-    format = 'file'
-  ),
-  
-  # Generate a zip file for each tile, zipping the grouped feathers
-  tar_target(
-    p3_gcm_glm_uncalibrated_output_zips,
-    {
-      files_to_zip <- p3_gcm_glm_uncalibrated_output_feather_groups$export_fl
-      zipfile_out <- sprintf('3_extract/out/GLM_GCMs_tile%s.zip', unique(p3_gcm_glm_uncalibrated_output_feather_groups$spatial_tile_no))
-      zip_output_files(files_to_zip, zipfile_out)
-    },
     format = 'file',
     pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups)
   ),
@@ -145,7 +130,7 @@ p3 <- list(
       readr::write_csv(p3_nldas_glm_uncalibrated_output_feather_tibble, outfile)
       return(outfile)
     },
-    format = 'file'
+    format = 'file',
   ),
   
   # Group output feather tibble by state
