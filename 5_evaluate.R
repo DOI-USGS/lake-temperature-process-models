@@ -2,13 +2,20 @@ source('5_evaluate/src/eval_utility_fxns.R')
 source('4_visualize/src/plot_data_utility_fxns.R')
 
 p5 <- list(
+  # For now, evaluate only predictions for lakes within CASC states
+  tar_target(p5_CASC_states,
+             c('ND','SD','IA','MI','IN','IL','WI','MN','MO','AR','OH')),
+  
   ##### Evaluate GCM model output #####
   
   ###### Prep predictions and observations ######
   
   # Get vector of site_ids for which we have GCM output
+  # filtering to sites withing CASC states
   tar_target(p5_gcm_export_site_ids,
              p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+               filter(state %in% p5_CASC_states) %>%
+               arrange(site_id) %>%
                pull(site_id) %>%
                unique()),
   
@@ -134,9 +141,7 @@ p5 <- list(
   ###### Prep predictions and observations ######
   
   # Get vector of site_ids for which we have NLDAS output
-  # For now, evaluate only predictions for lakes within CASC states
-  tar_target(p5_CASC_states,
-             c('ND','SD','IA','MI','IN','IL','WI','MN','MO','AR','OH')),
+  # filtering to sites within CASC states
   tar_target(p5_nldas_export_site_ids,
              p3_nldas_glm_uncalibrated_output_feather_tibble %>%
                filter(state %in% p5_CASC_states) %>%
