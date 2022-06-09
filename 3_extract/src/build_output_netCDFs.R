@@ -175,6 +175,11 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   temp_data_prec <- temp_metadata$data_precision
   temp_data_metadata <- list(name = temp_metadata$var_name, long_name = temp_metadata$longname)
   
+  # set up temp variable
+  add_var(nc, name = temp_data_metadata$name, dim = c(depths_dim_name, "time", site_ids_dim_name),
+          type = temp_data_prec, units = temp_data_unit, missing = -2147483648,
+          long_name = temp_data_metadata[['long_name']])
+  
   # Add temp data for all depths
   
   
