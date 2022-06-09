@@ -26,14 +26,13 @@ p1 <- list(
                filter(site_id %in% p1_nml_site_ids) %>%
                arrange(site_id)),
 
-  # lake - GCM cell - GCM tile crosswalk, filtered to only those lakes
-  # that are in nml list (able to be modeled by GLM)
+  # lake - GCM cell - GCM tile crosswalk, assumed to only include lakes
+  # that are in the nml list (able to be modeled by GLM)
   # used to define site_ids for GCM runs
   # file copied from lake-temperature-model-prep repo '7_drivers_munge/out/lake_cell_tile_xwalk.csv'
   tar_target(p1_lake_cell_tile_xwalk_csv, '1_prep/in/lake_cell_tile_xwalk.csv', format = 'file'),
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
-               filter(site_id %in% p1_nml_site_ids) %>%
                arrange(site_id) %>% #),
                filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097'))), #, 'nhdhr_120019185','nhdhr_114544667'
   
