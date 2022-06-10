@@ -75,7 +75,8 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
     select(-ice)
   
   # Pull vector of unique dates and convert to POSIXct
-  glm_dates <- as.POSIXct(unique(output_data$time), tz='GMT')
+  glm_dates <- unique(output_data$time)
+  glm_dates_posixct <- as.POSIXct(glm_dates, tz='GMT')
   
   # Pull vector of unique site ids
   site_ids <- unique(output_info$site_id)
@@ -108,15 +109,15 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   # approach 1: convert dataframe to data.table. Set keys (driver, depth) and use keys to filter. transpose data.table
   # approach 2: loop through site ids, filter data to site, depth, driver. add data to matrix. convert matrix to data.frame
   # approach 3: use dplyr to pivot filtered tibble then convert to data.frame
-  skipped_ids <- c()
+  skipped_ids_ice <- c()
   ice_wide <- matrix(rep(NA_real_, length(glm_dates) * length(site_ids)), ncol = length(site_ids))
   for (i in 1:length(site_ids)) {
     this_site <- site_ids[i]
-    this_site_ice <- ice_data %>% filter(site_id==this_site) %>% pull(ice) #this_site_surface <- temp_data %>% filter(site_id==this_site, depth==0, driver==initial_driver) %>% pull(temperature)
+    this_site_ice <- ice_data %>% filter(site_id==this_site) %>% pull(ice)
     if (length(this_site_ice) == nrow(ice_wide)){
       ice_wide[, i] <- this_site_ice
     } else {
-      skipped_ids <- c(skipped_ids, site_id)
+      skipped_ids_ice <- c(skipped_ids_ice, site_id)
     }
   }
   # convert to data.frame since that is what the write_timeseries_dsg() file expects
@@ -139,7 +140,7 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
                                  instance_names = site_ids,
                                  lats = lake_centroid_lats,
                                  lons = lake_centroid_lons,
-                                 times = glm_dates,
+                                 times = glm_dates_posixct,
                                  data = ice_wide,
                                  data_unit = ice_data_unit,
                                  data_prec = ice_data_prec,
@@ -176,12 +177,54 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   temp_data_metadata <- list(name = temp_metadata$var_name, long_name = temp_metadata$longname)
   
   # set up temp variable
-  add_var(nc, name = temp_data_metadata$name, dim = c(depths_dim_name, "time", site_ids_dim_name),
+  add_var(nc, name = temp_data_metadata$name, dim = c("time", site_ids_dim_name, depths_dim_name),
           type = temp_data_prec, units = temp_data_unit, missing = -2147483648,
           long_name = temp_data_metadata[['long_name']])
   
-  # Add temp data for all depths
+  # Add coordinates (didn't seem necessary, but this is done in ncdfgeom `put_data_in_nc()`)
+  coordinates <- paste('time','lat','lon') # paste(pkg.env$time_var_name,pkg.env$lat_coord_var_name,pkg.env$lon_coord_var_name)
+  att.put.nc(nc, temp_data_metadata$name, 'coordinates', "NC_CHAR", coordinates)
   
+  # Add temp data for all depths
+  temp_dt <- as.data.table(temp_data)
+  setkey(temp_dt, time)
+  array_3d <- array(NA, dim = c(length(glm_dates), length(site_ids), n_depths))
+  for (i in seq(length(glm_dates))) {
+    temp_dt_date <- temp_dt[.(glm_dates[i])]
+    temp_wide <- temp_dt_date[, as.list(setattr(temperature, 'names', site_id)), by=list(depth)][,depth:=NULL] # dim = n_rows = n_depths, n_cols = n_sites
+    array_3d[i,,] <- t(temp_wide)
+    remove(temp_dt_date)
+    remove(temp_wide)
+  }
+  var.put.nc(nc, temp_data_metadata$name, array_3d, start=c(1,1,1), count=c(dim(array_3d)))
+  # for each date, get temp data for all sites in wide format
+  # skipped_ids_temp <- c()
+  # temp_data %>%
+  #   mutate(seq = seq_len(n()), timestep = ntile(seq, length(glm_dates))) %>%
+  #   group_by(time) %>%
+  #   group_map(~ {
+  #     current_timestep <- unique(.x$timestep)
+  #     temp_wide <- matrix(rep(NA_real_, n_depths * length(site_ids)), ncol = length(site_ids))
+  #     for (i in 1:length(site_ids)) {
+  #       this_site <- site_ids[i]
+  #       this_site_temp <- .x %>% filter(site_id==this_site) %>% pull(temperature)
+  #       if (length(this_site_temp) == nrow(temp_wide)){
+  #         temp_wide[, i] <- this_site_temp
+  #       } else {
+  #         skipped_ids_temp <- c(skipped_ids_temp, site_id)
+  #       }
+  #     }
+  #     # convert to data.frame since that is what the write_timeseries_dsg() file expects
+  #     temp_wide <- as.data.frame(temp_wide) %>% setNames(site_ids)
+  # 
+  #     if (n_depths * length(site_ids) < 100000) {
+  #       var.put.nc(nc, temp_data_metadata$name, as.matrix(temp_wide), start=c(current_timestep,1,1), count=c(1,length(site_ids), n_depths))
+  #     } else {
+  #       for ( st in 1:length(site_ids) ) {
+  #         var.put.nc(nc, temp_data_metadata$name, as.matrix(data[,st]), start=c(current_timestep, st, 1), count=c(1, 1, n_depths))
+  #       }
+  #     }
+  #   })
   
   
   # # Add dimension for GCMs
