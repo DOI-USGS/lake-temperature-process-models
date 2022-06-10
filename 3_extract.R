@@ -74,7 +74,7 @@ p3 <- list(
              tibble(
                var_name = c("temp","ice"),
                longname = c("Surface water temperature [°C]","Boolean indicating presence of ice"),
-               units = c("degrees Celcius",""),
+               units = c("degrees Celcius","NA"),
                data_precision = c('float','integer'),
                compression_precision = c('.2','1')
              )),
