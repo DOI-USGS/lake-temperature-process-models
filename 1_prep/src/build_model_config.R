@@ -21,7 +21,7 @@ build_gcm_model_config <- function(gcm_csvs, lake_cell_tile_xwalk, gcm_names, gc
   gcm_name_list <- paste(gcm_names,collapse="|")
   gcm_time_period_list <- paste(gcm_dates$time_period,collapse="|")
   data_cell_no_list <- paste(unique(lake_cell_tile_xwalk$data_cell_no),collapse= "|")
-  # Build tibble of meteo files, branches, hashes, gcm name, cell_no, and time_period
+  # Build tibble of meteo files, hashes, driver (gcm name), cell_no, and time_period
   meteo_branches <- tibble(
     meteo_fl = gcm_csvs,
     meteo_fl_hash = tools::md5sum(gcm_csvs),
