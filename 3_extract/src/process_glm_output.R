@@ -48,11 +48,10 @@ write_glm_output <- function(run_group, outfile_template) {
 #' the passed runs are GCM runs, each site has 6 output feather files. If
 #' the passed runs are NLDAS runs, each site has 1 output feather file. 
 #' The function maps over these file names.
-#' @param output_site_ids vector of site_ids for which there are output
-#' feather files
-#' @param driver_names names of the driver(s) used to run the models. If
-#' the passed runs are GCM runs, this is a vector of the 6 GCM names. If the
-#' passed runs are NLDAS runs, this is 'NLDAS'
+#' @param output_file_regex regex pattern for the output files returned by
+#' `write_glm_output()` -- used to extract the site_id and driver of the
+#' output data. NOTE: must match pattern matching that used in `write_glm_output()`,
+#' currently that is 'GLM_{site_id}_{driver}.feather'
 #' @param lake_xwalk - If the passed runs are GCM runs, this xwalk is a 
 #' mapping of which lakes fall into which gcm cells and tiles (parameters 
 #' `spatial_cell_no` and `spatial_tile_no`) and which gcm cell to use for 
@@ -64,18 +63,14 @@ write_glm_output <- function(run_group, outfile_template) {
 #' site_id, driver, the name of the export feather file, its hash, the state 
 #' the lake is in, and (if GCM output) the GCM spatial_cell_no, spatial_tile_no, 
 #' data_cell_no, and data_tile_no for that lake.
-generate_output_tibble <- function(output_feathers, output_site_ids, driver_names, lake_xwalk) {
-  # collapse the site_ids and driver names vectors for use in string matching
-  site_id_list <- paste(output_site_ids,collapse="|")
-  driver_name_list <- paste(driver_names,collapse="|")
+generate_output_tibble <- function(output_feathers, output_file_regex, lake_xwalk) {
   
   # Build tibble of output files, hashes, driver, and site_id
   export_tibble <- tibble(
     export_fl = output_feathers,
-    export_fl_hash = tools::md5sum(output_feathers),
-    site_id = stringr::str_extract(export_fl, site_id_list),
-    driver = stringr::str_extract(export_fl, driver_name_list)
+    export_fl_hash = tools::md5sum(output_feathers)
   ) %>%
+    extract(export_fl, c('site_id','driver'), output_file_regex, remove = FALSE) %>% 
     select(site_id, driver, export_fl, export_fl_hash) %>%
     left_join(lake_xwalk, by='site_id')
   
