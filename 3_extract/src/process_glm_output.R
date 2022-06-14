@@ -50,7 +50,7 @@ write_glm_output <- function(run_group, outfile_template) {
 #' The function maps over these file names.
 #' @param output_file_regex regex pattern for the output files returned by
 #' `write_glm_output()` -- used to extract the site_id and driver of the
-#' output data. NOTE: must match pattern matching that used in `write_glm_output()`,
+#' output data. NOTE: must match the outfile_template used in `write_glm_output()`,
 #' currently that is 'GLM_{site_id}_{driver}.feather'
 #' @param lake_xwalk - If the passed runs are GCM runs, this xwalk is a 
 #' mapping of which lakes fall into which gcm cells and tiles (parameters 
