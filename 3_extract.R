@@ -27,8 +27,7 @@ p3 <- list(
   tar_target(
     p3_gcm_glm_uncalibrated_output_feather_tibble,
     generate_output_tibble(p3_gcm_glm_uncalibrated_output_feathers,
-                           output_site_ids = unique(p2_gcm_glm_uncalibrated_run_groups$site_id),
-                           driver_names = unique(p2_gcm_glm_uncalibrated_run_groups$driver),
+                           output_file_regex = "GLM_(.*)_(.*).feather",
                            lake_xwalk = p1_lake_cell_tile_xwalk_df)
   ),
   
@@ -85,8 +84,7 @@ p3 <- list(
   tar_target(
     p3_nldas_glm_uncalibrated_output_feather_tibble,
     generate_output_tibble(p3_nldas_glm_uncalibrated_output_feathers, 
-                           output_site_ids = unique(p2_nldas_glm_uncalibrated_run_groups$site_id),
-                           driver_names = unique(p2_nldas_glm_uncalibrated_run_groups$driver),
+                           output_file_regex = "GLM_(.*)_(.*).feather",
                            lake_xwalk = p1_lake_to_state_xwalk_df)
   ),
   
