@@ -6,6 +6,11 @@ p1 <- list(
   # Pull in GLM 3 template
   tar_target(p1_glm_template_nml, '1_prep/in/glm3_template.nml', format = 'file'),
   
+  # Define vector of CASC states
+  # For now, we are only interested in modeling lakes within these states
+  tar_target(p1_CASC_states,
+             c('ND','SD','IA','MI','IN','IL','WI','MN','MO','AR','OH')),
+  
   ##### Pull in files from lake-temperature-model-prep #####
   # TODO - transfer to Denali using globus
   # list of lake-specific attributes for nml modification
@@ -18,21 +23,24 @@ p1 <- list(
   tar_target(p1_obs_feather, '1_prep/in/merged_temp_data_daily.feather', format = 'file'),
   
   # lake-to-state xwalk, filtered to only those lakes that are in nml list (able to be modeled by GLM)
+  # and only those lakes that fall within CASC states. 
   # used to define site_ids for NLDAS runs, not for GCM runs
   # file copied from lake-temperature-model-prep repo '2_crosswalk_munge/out/lake_to_state_xwalk.rds'
   tar_target(p1_lake_to_state_xwalk_rds, '1_prep/in/lake_to_state_xwalk.rds', format='file'),
   tar_target(p1_lake_to_state_xwalk_df,
              readr::read_rds(p1_lake_to_state_xwalk_rds) %>%
-               filter(site_id %in% p1_nml_site_ids) %>%
+               filter(site_id %in% p1_nml_site_ids, state %in% p1_CASC_states) %>%
                arrange(site_id)),
 
   # lake - GCM cell - GCM tile crosswalk, assumed to only include lakes
-  # that are in the nml list (able to be modeled by GLM)
+  # that are in the nml list (able to be modeled by GLM), filtered to 
+  # only those lakes that fall within CASC states
   # used to define site_ids for GCM runs
   # file copied from lake-temperature-model-prep repo '7_drivers_munge/out/lake_cell_tile_xwalk.csv'
   tar_target(p1_lake_cell_tile_xwalk_csv, '1_prep/in/lake_cell_tile_xwalk.csv', format = 'file'),
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
+               filter(state %in% p1_CASC_states) %>%
                arrange(site_id) %>% #),
                filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097'))), #, 'nhdhr_120019185','nhdhr_114544667'
   
