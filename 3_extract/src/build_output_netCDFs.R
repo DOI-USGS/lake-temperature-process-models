@@ -157,7 +157,6 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   # For now, only add dim for depth (3D netCDF)
   nc <- RNetCDF::open.nc(nc_file, write=TRUE)
   
-  
   # Add dimension for depth
   all_depths <- unique(temp_data$depth)
   depths_dim_name <- "depth"
@@ -169,6 +168,8 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   add_var(nc, depths_dim_name, c(depths_dim_name), "NC_DOUBLE", 'm', -999, long_name = 'Depth of prediction beneath lake surface', data=all_depths)
   # Populate the variable with the actual GCM names
   var.put.nc(nc, depths_dim_name, all_depths)
+  # Set 'cf_role' attribute for depth - see http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch09s05.html
+  att.put.nc(nc, depths_dim_name, 'cf_role', "NC_CHAR", "profile_id")
 
   # Set up temp var metadata
   temp_metadata <- nc_var_info %>% filter(var_name=='temp')
@@ -181,9 +182,12 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
           type = temp_data_prec, units = temp_data_unit, missing = -2147483648,
           long_name = temp_data_metadata[['long_name']])
   
-  # Add coordinates (didn't seem necessary, but this is done in ncdfgeom `put_data_in_nc()`)
+  # Add coordinates
   coordinates <- paste('time','lat','lon') # paste(pkg.env$time_var_name,pkg.env$lat_coord_var_name,pkg.env$lon_coord_var_name)
   att.put.nc(nc, temp_data_metadata$name, 'coordinates', "NC_CHAR", coordinates)
+  
+  # add FeatureType information
+  att.put.nc(nc, temp_data_metadata$name, 'featureType', "NC_CHAR", 'timeSeriesProfile')
   
   # Add temp data for all depths
   temp_dt <- as.data.table(temp_data)
@@ -197,35 +201,10 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
     remove(temp_wide)
   }
   var.put.nc(nc, temp_data_metadata$name, array_3d, start=c(1,1,1), count=c(dim(array_3d)))
-  # for each date, get temp data for all sites in wide format
-  # skipped_ids_temp <- c()
-  # temp_data %>%
-  #   mutate(seq = seq_len(n()), timestep = ntile(seq, length(glm_dates))) %>%
-  #   group_by(time) %>%
-  #   group_map(~ {
-  #     current_timestep <- unique(.x$timestep)
-  #     temp_wide <- matrix(rep(NA_real_, n_depths * length(site_ids)), ncol = length(site_ids))
-  #     for (i in 1:length(site_ids)) {
-  #       this_site <- site_ids[i]
-  #       this_site_temp <- .x %>% filter(site_id==this_site) %>% pull(temperature)
-  #       if (length(this_site_temp) == nrow(temp_wide)){
-  #         temp_wide[, i] <- this_site_temp
-  #       } else {
-  #         skipped_ids_temp <- c(skipped_ids_temp, site_id)
-  #       }
-  #     }
-  #     # convert to data.frame since that is what the write_timeseries_dsg() file expects
-  #     temp_wide <- as.data.frame(temp_wide) %>% setNames(site_ids)
-  # 
-  #     if (n_depths * length(site_ids) < 100000) {
-  #       var.put.nc(nc, temp_data_metadata$name, as.matrix(temp_wide), start=c(current_timestep,1,1), count=c(1,length(site_ids), n_depths))
-  #     } else {
-  #       for ( st in 1:length(site_ids) ) {
-  #         var.put.nc(nc, temp_data_metadata$name, as.matrix(data[,st]), start=c(current_timestep, st, 1), count=c(1, 1, n_depths))
-  #       }
-  #     }
-  #   })
   
+  # Modify global feature type and ice feature type
+  att.put.nc(nc, "NC_GLOBAL", 'featureType', "NC_CHAR", 'timeSeriesProfile')
+  att.put.nc(nc, ice_data_metadata$name, 'featureType', "NC_CHAR", 'timeSeries')
   
   # # Add dimension for GCMs
   # drivers <- unique(lake_gcm_info$driver)
