@@ -75,21 +75,28 @@ p3 <- list(
                pull(site_id) %>%
                unique()),
   
+  # FOR TESTING, SUBSET
+  tar_target(p3_gcm_export_site_ids_SUBSET,
+             p3_gcm_export_site_ids[1:1000]),
+  tar_target(p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET,
+             p3_gcm_glm_uncalibrated_output_feather_groups %>%
+               filter(site_id %in% p3_gcm_export_site_ids_SUBSET)),
+  
   # Pull latitude and longitude coordinates for exported site_ids
   tar_target(p3_gcm_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids)),
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids_SUBSET)), #p3_gcm_export_site_ids
   
   # Write GCM GLM output to netCDF files -- one per GCM
   tar_target(
     p3_gcm_glm_uncalibrated_nc,
     generate_output_nc(
-      nc_file = sprintf('3_extract/out/GLM_GCMs_%s.nc', unique(p3_gcm_glm_uncalibrated_output_feather_groups$driver)), 
-      output_info = p3_gcm_glm_uncalibrated_output_feather_groups,
+      nc_file = sprintf('3_extract/out/GLM_GCMs_%s.nc', unique(p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET$driver)), #p3_gcm_glm_uncalibrated_output_feather_groups$driver
+      output_info = p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET, # p3_gcm_glm_uncalibrated_output_feather_groups
       nc_var_info = p3_nc_var_info,
       site_coords = p3_gcm_site_coords, 
       compression = FALSE),
     format = 'file',
-    pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups)
+    pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET) # p3_gcm_glm_uncalibrated_output_feather_groups
   ),
   
   ##### Extract NLDAS model output #####
@@ -133,22 +140,28 @@ p3 <- list(
                arrange(site_id) %>%
                pull(site_id)),
   
+  # FOR TESTING, SUBSET
+  tar_target(p3_nldas_export_site_ids_SUBSET,
+             p3_nldas_export_site_ids[1:1000]),
+  tar_target(p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET,
+             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+               filter(site_id %in% p3_nldas_export_site_ids_SUBSET)),
+  
   # Pull latitude and longitude coordinates for exported site_ids
   tar_target(p3_nldas_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids)),
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids_SUBSET)), #p3_nldas_export_site_ids
   
   # Write NLDAS GLM output to a netCDF file
   tar_target(
     p3_nldas_glm_uncalibrated_nc,
     generate_output_nc(
-      nc_file = sprintf('3_extract/out/GLM_%s.nc', unique(p3_nldas_glm_uncalibrated_output_feather_tibble$driver)), 
-      output_info = p3_nldas_glm_uncalibrated_output_feather_tibble,
+      nc_file = sprintf('3_extract/out/GLM_%s.nc', unique(p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET$driver)), # p3_nldas_glm_uncalibrated_output_feather_tibble
+      output_info = p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET, # p3_nldas_glm_uncalibrated_output_feather_tibble
       nc_var_info = p3_nc_var_info,
       site_coords = p3_nldas_site_coords, 
       compression = FALSE),
     format = 'file'
   ),
-  
   
   ###### Zip NLDAS GLM output ######
   # Group output feather tibble by state
