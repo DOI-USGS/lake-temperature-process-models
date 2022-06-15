@@ -55,13 +55,10 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
       mutate(site_id = site_output_info$site_id, .before=1)
   }) %>% arrange(site_id)
   
-  output_data_long <- munge_long(output_data)
-  
-  ice_data <- output_data_long %>%
-    filter(depth == 0) %>%
+  ice_data <- output_data %>%
     select(site_id, time, ice)
   
-  temp_data <- output_data_long %>%
+  temp_data <- output_data %>%
     select(-ice)
   
   # Pull vector of unique dates and convert to POSIXct
@@ -152,7 +149,7 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   att.put.nc(nc, ice_data_metadata$name, 'featureType', "NC_CHAR", 'timeSeries')
   
   # Add dimension for depth
-  all_depths <- unique(temp_data$depth)
+  all_depths <- as.numeric(str_remove(output_data %>% select(starts_with('temp_')) %>% colnames(), 'temp_'))
   depths_dim_name <- "depth"
   n_depths <- length(all_depths)
 
@@ -189,8 +186,8 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   array_3d <- array(NA, dim = c(length(glm_dates), length(site_ids), n_depths))
   for (i in seq(length(glm_dates))) {
     temp_dt_date <- temp_dt[.(glm_dates[i])]
-    temp_wide <- temp_dt_date[, as.list(setattr(temperature, 'names', site_id)), by=list(depth)][,depth:=NULL] # dim = n_rows = n_depths, n_cols = n_sites
-    array_3d[i,,] <- t(temp_wide)
+    temp_wide <- temp_dt_date[,c("site_id","time"):=NULL] # dim = n_rows = n_depths, n_cols = n_sites
+    array_3d[i,,] <- as.matrix(temp_wide)
     remove(temp_dt_date)
     remove(temp_wide)
   }
