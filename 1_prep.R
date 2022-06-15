@@ -30,8 +30,7 @@ p1 <- list(
   tar_target(p1_lake_to_state_xwalk_df,
              readr::read_rds(p1_lake_to_state_xwalk_rds) %>%
                filter(site_id %in% p1_nml_site_ids, state %in% p1_CASC_states) %>%
-               arrange(site_id) %>% #),
-               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569506', 'nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))),
+               arrange(site_id)),
 
   # lake - GCM cell - GCM tile crosswalk, assumed to only include lakes
   # that are in the nml list (able to be modeled by GLM), filtered to 
@@ -42,8 +41,7 @@ p1 <- list(
   tar_target(p1_lake_cell_tile_xwalk_df, 
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(state %in% p1_CASC_states) %>%
-               arrange(site_id) %>% #),
-               filter(site_id %in% c('nhdhr_{02510024-2C0B-4F00-B866-7FBA96AE1EB4}','nhdhr_{00A0B20D-B53E-4189-AE14-461AAC64BD53}','nhdhr_105567868','nhdhr_105569506', 'nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))),
+               arrange(site_id)),
   
   ##### GCM model set up #####
   # Pull vector of site ids
