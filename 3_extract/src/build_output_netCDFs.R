@@ -133,12 +133,12 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
                                  data_prec = ice_data_prec,
                                  data_metadata = ice_data_metadata,
                                  time_units = data_time_units,
-                                 instance_dim_name = site_ids_dim_name,
-                                 dsg_timeseries_id = site_ids_dim_name,
                                  attributes = data_attributes,
                                  coordvar_long_names = data_coordvar_long_names,
                                  add_to_existing = var_add_to_existing,
-                                 overwrite = TRUE)
+                                 overwrite = TRUE) #
+  # instance_dim_name = site_ids_dim_name,
+  # dsg_timeseries_id = site_ids_dim_name,
 
   ## modify and add new dims (depth, GCMs?) and temp preds with RNetCDF
   # For now, only add dim for depth (3D netCDF)
@@ -169,7 +169,7 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
   temp_data_metadata <- list(name = temp_metadata$var_name, long_name = temp_metadata$longname)
   
   # set up temp variable
-  add_var(nc, name = temp_data_metadata$name, dim = c("time", site_ids_dim_name, depths_dim_name),
+  add_var(nc, name = temp_data_metadata$name, dim = c("time", 'instance', depths_dim_name), #site_ids_dim_name
           type = temp_data_prec, units = temp_data_unit, missing = -2147483648,
           long_name = temp_data_metadata[['long_name']])
   
