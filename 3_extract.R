@@ -1,8 +1,20 @@
 source('3_extract/src/process_glm_output.R')
 source('3_extract/src/build_output_netCDFs.R')
+source('3_extract/src/ncdfgeom_fxns.R')
 source('4_visualize/src/plot_data_utility_fxns.R')
 
 p3 <- list(
+  
+  # Setup table of GLM variable definitions to use in NetCDF file metadata
+  tar_target(p3_nc_var_info,
+             tibble(
+               var_name = c("temp","ice"),
+               longname = c("Surface water temperature [°C]","Boolean indicating presence of ice"),
+               units = c("degrees Celcius","NA"),
+               data_precision = c('float','integer'),
+               compression_precision = c('.2','1')
+             )),
+  
   ##### Extract GCM model output #####
   # Use grouped runs target to combine GCM glm output into feather files
   # Function will generate the output feather file for each lake-gcm combo
@@ -55,38 +67,19 @@ p3 <- list(
     iteration = "group"
   ),
   
-  # Here, could put data into netCDF - if putting it by GCM, would want to group by GCM
-  # Makes sense to work off ^ or similar tibble so can track hash of output data
-  # Could work with raw feather output or ^ output feathers, which are just temp and ice
-  # Setup table of GLM variable definitions to use in NetCDF file metadata
+  ###### Write GCM GLM output to netCDF ######
+  # Get vector of site_ids for which we have GCM output
   tar_target(p3_gcm_export_site_ids,
              p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+               arrange(site_id) %>%
                pull(site_id) %>%
                unique()),
+  
+  # Pull latitude and longitude coordinates for exported site_ids
   tar_target(p3_gcm_site_coords,
-             # Get WGS84 latitude and longitude of lake centroids
-             p1_gcm_lake_centroids_sf %>%
-               filter(site_id %in% p3_gcm_export_site_ids) %>%
-               mutate(lon = sf::st_coordinates(.)[,1], lat = sf::st_coordinates(.)[,2]) %>%
-               sf::st_set_geometry(NULL) %>%
-               arrange(site_id)),
-  tar_target(p3_nc_var_info,
-             tibble(
-               var_name = c("temp","ice"),
-               longname = c("Surface water temperature [°C]","Boolean indicating presence of ice"),
-               units = c("degrees Celcius","NA"),
-               data_precision = c('float','integer'),
-               compression_precision = c('.2','1')
-             )),
-  # tar_target(
-  #   p3_gcm_glm_uncalibrated_output_long,
-  #   p3_gcm_glm_uncalibrated_output %>%
-  #     pivot_longer(starts_with("temp_"), names_to="depth", values_to="temperature") %>%
-  #     mutate(depth = as.numeric(str_remove(depth, 'temp_'))) %>%
-  #     mutate(site_id = p3_gcm_glm_uncalibrated_output_feather_tibble$site_id,
-  #            driver = p3_gcm_glm_uncalibrated_output_feather_tibble$driver, .before=1),
-  #   pattern = map(p3_gcm_glm_uncalibrated_output, p3_gcm_glm_uncalibrated_output_feather_tibble)
-  # ),
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids)),
+  
+  # Write GCM GLM output to netCDF files -- one per GCM
   tar_target(
     p3_gcm_glm_uncalibrated_nc,
     generate_output_nc(
@@ -133,6 +126,31 @@ p3 <- list(
     format = 'file',
   ),
   
+  ###### Write NLDAS GLM output to netCDF ######
+  # Get vector of site_ids for which we have GCM output
+  tar_target(p3_nldas_export_site_ids,
+             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+               arrange(site_id) %>%
+               pull(site_id)),
+  
+  # Pull latitude and longitude coordinates for exported site_ids
+  tar_target(p3_nldas_site_coords,
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids)),
+  
+  # Write NLDAS GLM output to a netCDF file
+  tar_target(
+    p3_nldas_glm_uncalibrated_nc,
+    generate_output_nc(
+      nc_file = sprintf('3_extract/out/GLM_%s.nc', unique(p3_nldas_glm_uncalibrated_output_feather_tibble$driver)), 
+      output_info = p3_nldas_glm_uncalibrated_output_feather_tibble,
+      nc_var_info = p3_nc_var_info,
+      site_coords = p3_nldas_site_coords, 
+      compression = FALSE),
+    format = 'file'
+  ),
+  
+  
+  ###### Zip NLDAS GLM output ######
   # Group output feather tibble by state
   tar_target(
     p3_nldas_glm_uncalibrated_output_feather_groups,

@@ -30,7 +30,8 @@ p1 <- list(
   tar_target(p1_lake_to_state_xwalk_df,
              readr::read_rds(p1_lake_to_state_xwalk_rds) %>%
                filter(site_id %in% p1_nml_site_ids, state %in% p1_CASC_states) %>%
-               arrange(site_id)),
+               arrange(site_id) %>% #),
+               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569506', 'nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))),
 
   # lake - GCM cell - GCM tile crosswalk, assumed to only include lakes
   # that are in the nml list (able to be modeled by GLM), filtered to 
@@ -42,7 +43,7 @@ p1 <- list(
              readr::read_csv(p1_lake_cell_tile_xwalk_csv, col_types=cols()) %>%
                filter(state %in% p1_CASC_states) %>%
                arrange(site_id) %>% #),
-               filter(site_id %in% c('nhdhr_105567868','nhdhr_105569520', 'nhdhr_114336097'))), #, 'nhdhr_120019185','nhdhr_114544667'
+               filter(site_id %in% c('nhdhr_{02510024-2C0B-4F00-B866-7FBA96AE1EB4}','nhdhr_{00A0B20D-B53E-4189-AE14-461AAC64BD53}','nhdhr_105567868','nhdhr_105569506', 'nhdhr_105569520', 'nhdhr_114336097', 'nhdhr_120019185','nhdhr_114544667'))),
   
   ##### GCM model set up #####
   # Pull vector of site ids
@@ -68,12 +69,6 @@ p1 <- list(
   # Pull vectors of data cell numbers
   tar_target(p1_gcm_cell_nos, unique(p1_lake_cell_tile_xwalk_df %>% pull(data_cell_no))),
 
-  # Subset lake spatial info to
-  tar_target(p1_gcm_lake_centroids_sf,
-             readRDS(p1_lake_centroids_sf_rds) %>%
-               arrange(site_id) %>%
-               filter(site_id %in% p1_gcm_site_ids)),
-  
   # Specify length of desired burn-in and burn-out periods, in days
   tar_target(p1_gcm_burn_in, 300),
   tar_target(p1_gcm_burn_out, 190),
