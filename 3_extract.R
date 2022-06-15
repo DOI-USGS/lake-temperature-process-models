@@ -79,8 +79,11 @@ p3 <- list(
   tar_target(p3_gcm_export_site_ids_SUBSET,
              p3_gcm_export_site_ids[1:1000]),
   tar_target(p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET,
-             p3_gcm_glm_uncalibrated_output_feather_groups %>%
-               filter(site_id %in% p3_gcm_export_site_ids_SUBSET)),
+             p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+               filter(site_id %in% p3_gcm_export_site_ids_SUBSET) %>%
+               group_by(driver) %>%
+               tar_group(),
+             iteration = "group"),
   
   # Pull latitude and longitude coordinates for exported site_ids
   tar_target(p3_gcm_site_coords,
