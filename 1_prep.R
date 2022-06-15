@@ -17,9 +17,13 @@ p1 <- list(
   # file copied from lake-temperature-model-prep repo '7_config_merge/out/nml_list.rds'
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
+  
+  # lake centroids sf object 
+  # file copied from lake-temperature-model-prep repo '2_crosswalk_munge/out/centroid_lakes_sf.rds'
   tar_target(p1_lake_centroids_sf_rds, '1_prep/in/centroid_lakes_sf.rds', format='file'),
   
-  # Temperature observations `7b_temp_merge/out/merged_temp_data_daily.feather`
+  # Temperature observations 
+  # file copied from lake-temperature-model-prep repo `7b_temp_merge/out/merged_temp_data_daily.feather`
   tar_target(p1_obs_feather, '1_prep/in/merged_temp_data_daily.feather', format = 'file'),
   
   # lake-to-state xwalk, filtered to only those lakes that are in nml list (able to be modeled by GLM)
