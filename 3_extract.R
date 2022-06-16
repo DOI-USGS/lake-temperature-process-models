@@ -85,9 +85,42 @@ p3 <- list(
                tar_group(),
              iteration = "group"),
   
+  # Pull out lake depth for each NLDAS export site
+  tar_target(
+    p3_gcm_depths,
+    purrr::map_df(p3_gcm_export_site_ids_SUBSET, function(site_id) { # p3_gcm_export_site_ids
+      site_nml <- p1_gcm_nml_list_subset[[site_id]]
+      tibble(
+        site_id = site_id,
+        lake_depth = site_nml$lake_depth
+      )
+    })
+  ),
+  
+  # Set vector of depths for which to keep temp preds, based on max depth of export lake
+  # currently matching Andy's approach here: https://github.com/USGS-R/lake-temperature-lstm-static/blob/main/2_process/process_config.yaml#L8-L13
+  tar_target(
+    p3_gcm_depths_export,
+    {
+      if (max(p3_gcm_depths$lake_depth, na.rm=TRUE) <= 10) {
+        c(seq(0,10, by=0.5))
+      } else if (max(p3_gcm_depths$lake_depth, na.rm=TRUE) > 10 & max(p3_gcm_depths$lake_depth, na.rm=TRUE) <= 20) {
+        c(seq(0,10, by=0.5),seq(11,20,by=1))
+      } else if (max(p3_gcm_depths$lake_depth, na.rm=TRUE) > 20 & max(p3_gcm_depths$lake_depth, na.rm=TRUE) <= 40) {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,40, by=2))
+      } else if (max(p3_gcm_depths$lake_depth, na.rm=TRUE) > 40  & max(p3_gcm_depths$lake_depth, na.rm=TRUE) <= 100) {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,100, by=5))
+      } else if (max(p3_gcm_depths$lake_depth, na.rm=TRUE) > 100  & max(p3_gcm_depths$lake_depth, na.rm=TRUE) <= 200) {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,95, by=5), seq(100, 200, by=10))
+      } else {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,95, by=5), seq(100, 190, by=10), seq(200, max(p3_gcm_depths$lake_depth, na.rm=TRUE),by=20))
+      }
+    }
+  ),
+  
   # Pull latitude and longitude coordinates for exported site_ids
   tar_target(p3_gcm_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids_SUBSET)), #p3_gcm_export_site_ids
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids_SUBSET)), # p3_gcm_export_site_ids
   
   # Write GCM GLM output to netCDF files -- one per GCM
   tar_target(
@@ -95,6 +128,7 @@ p3 <- list(
     generate_output_nc(
       nc_file = sprintf('3_extract/out/GLM_GCMs_%s.nc', unique(p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET$driver)), #p3_gcm_glm_uncalibrated_output_feather_groups$driver
       output_info = p3_gcm_glm_uncalibrated_output_feather_groups_SUBSET, # p3_gcm_glm_uncalibrated_output_feather_groups
+      export_depths = p3_gcm_depths_export,
       nc_var_info = p3_nc_var_info,
       site_coords = p3_gcm_site_coords, 
       compression = FALSE),
@@ -150,9 +184,42 @@ p3 <- list(
              p3_nldas_glm_uncalibrated_output_feather_tibble %>%
                filter(site_id %in% p3_nldas_export_site_ids_SUBSET)),
   
+  # Pull out lake depth for each NLDAS export site
+  tar_target(
+    p3_nldas_depths,
+    purrr::map_df(p3_nldas_export_site_ids_SUBSET, function(site_id) { # p3_nldas_export_site_ids
+      site_nml <- p1_nldas_nml_list_subset[[site_id]]
+      tibble(
+        site_id = site_id,
+        lake_depth = site_nml$lake_depth
+      )
+    })
+  ),
+  
+  # Set vector of depths for which to keep temp preds, based on max depth of export lake
+  # currently matching Andy's approach here: https://github.com/USGS-R/lake-temperature-lstm-static/blob/main/2_process/process_config.yaml#L8-L13
+  tar_target(
+    p3_nldas_depths_export,
+    {
+      if (max(p3_nldas_depths$lake_depth, na.rm=TRUE) <= 10) {
+        c(seq(0,10, by=0.5))
+      } else if (max(p3_nldas_depths$lake_depth, na.rm=TRUE) > 10 & max(p3_nldas_depths$lake_depth, na.rm=TRUE) <= 20) {
+        c(seq(0,10, by=0.5),seq(11,20,by=1))
+      } else if (max(p3_nldas_depths$lake_depth, na.rm=TRUE) > 20 & max(p3_nldas_depths$lake_depth, na.rm=TRUE) <= 40) {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,40, by=2))
+      } else if (max(p3_nldas_depths$lake_depth, na.rm=TRUE) > 40  & max(p3_nldas_depths$lake_depth, na.rm=TRUE) <= 100) {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,100, by=5))
+      } else if (max(p3_nldas_depths$lake_depth, na.rm=TRUE) > 100  & max(p3_nldas_depths$lake_depth, na.rm=TRUE) <= 200) {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,95, by=5), seq(100, 200, by=10))
+      } else {
+        c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,95, by=5), seq(100, 190, by=10), seq(200, max(p3_nldas_depths$lake_depth, na.rm=TRUE),by=20))
+      }
+    }
+  ),
+  
   # Pull latitude and longitude coordinates for exported site_ids
   tar_target(p3_nldas_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids_SUBSET)), #p3_nldas_export_site_ids
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids_SUBSET)), # p3_nldas_export_site_ids
   
   # Write NLDAS GLM output to a netCDF file
   tar_target(
@@ -160,6 +227,7 @@ p3 <- list(
     generate_output_nc(
       nc_file = sprintf('3_extract/out/GLM_%s.nc', unique(p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET$driver)), # p3_nldas_glm_uncalibrated_output_feather_tibble
       output_info = p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET, # p3_nldas_glm_uncalibrated_output_feather_tibble
+      export_depths = p3_nldas_depths_export,
       nc_var_info = p3_nc_var_info,
       site_coords = p3_nldas_site_coords, 
       compression = FALSE),

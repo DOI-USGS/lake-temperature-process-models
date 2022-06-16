@@ -47,13 +47,7 @@ p5 <- list(
   # Pull out lake depth for each GCM evaluation site
   tar_target(
     p5_gcm_depths,
-    purrr::map_df(p5_gcm_eval_sites, function(site_id) {
-      site_nml <- p1_gcm_nml_list_subset[[site_id]]
-      tibble(
-        site_id = site_id,
-        lake_depth = site_nml$lake_depth
-      )
-    })
+    filter(p3_gcm_depths, site_id %in% p5_gcm_eval_sites)
   ),
   
   # Prep matched preds for evaluation
@@ -165,13 +159,7 @@ p5 <- list(
   # Pull out lake depth for each NLDAS evaluation site
   tar_target(
     p5_nldas_depths,
-    purrr::map_df(p5_nldas_eval_sites, function(site_id) {
-      site_nml <- p1_nldas_nml_list_subset[[site_id]]
-      tibble(
-        site_id = site_id,
-        lake_depth = site_nml$lake_depth
-      )
-    })
+    filter(p3_nldas_depths, site_id %in% p5_nldas_eval_sites)
   ),
   
   # Prep matched preds for evaluation

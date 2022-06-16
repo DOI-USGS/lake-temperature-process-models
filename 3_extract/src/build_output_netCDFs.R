@@ -18,6 +18,7 @@ pull_site_coords <- function(lake_centroids_sf_rds, sites) {
 #' @param output_info A tibble with one row per GLM output feather file which includes the 
 #' site_id, driver, the name of the export feather file, its hash, and the state 
 #' the lake is in
+#' @param export_depths vector of depths for which we wish to export predictions
 #' @param nc_var_info variables and descriptions to store in NetCDF
 #' @param site_coords WGS84 coordinates of lake centroids
 #' @param compression T/F if the nc file should be compressed after creation
@@ -26,7 +27,7 @@ pull_site_coords <- function(lake_centroids_sf_rds, sites) {
 # then create a secondary function to add the depth dimension and add the additional data to those.
 # that later modification would be done with RNetCDF per explorations here:
 # https://github.com/hcorson-dosch/lake-temperature-model-prep/blob/bc4094cfb871a1b61dbfa78e4a9bae2c73789243/7_drivers_munge/src/GCM_driver_nc_utils.R#L101-L158
-generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, compression) {
+generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info, site_coords, compression) {
   # NOTE: adding a stop() for now while compression code and documentation still
   # needs to be refined further, but retaining draft code below
   if (compression == TRUE) {
@@ -48,11 +49,19 @@ generate_output_nc <- function(nc_file, output_info, nc_var_info, site_coords, c
     if (file.exists(nc_file)) unlink(nc_file)
   }
   
+  # get vector of temp columns to keep, based on specified export depths
+  export_depth_cols <- paste0('temp_', export_depths)
+  
   # Read in all predictions for the current (tar_group) driver
   output_data <- purrr::pmap_df(output_info, function(...) {
     site_output_info <- tibble(...)
-    arrow::read_feather(site_output_info$export_fl) %>%
+    site_output <- arrow::read_feather(site_output_info$export_fl)
+    # determine which `temp_{depth}` columns to keep based on export depth columns
+    cols_to_keep <- colnames(site_output)[colnames(site_output) %in% export_depth_cols]
+    site_output_subset <- site_output %>%
+      select(time, all_of(cols_to_keep), ice) %>%
       mutate(site_id = site_output_info$site_id, .before=1)
+    return(site_output_subset)
   }) %>% arrange(site_id)
   
   ice_data <- output_data %>%
