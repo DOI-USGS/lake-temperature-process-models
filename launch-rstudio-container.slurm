@@ -88,7 +88,7 @@ When done using RStudio Server, terminate the job by:
 END
 
 module load singularity
-singularity exec  glm3r_v0.7.sif \
+singularity exec  glm3r.sif \
     bash -c "cp /usr/local/lib/R/etc/Renviron.site.orig /usr/local/lib/R/etc/Renviron.site; \
             echo SINGULARITY_CONTAINER=\$SINGULARITY_CONTAINER >> /usr/local/lib/R/etc/Renviron.site; \
             echo SINGULARITY_BIND=\$SINGULARITY_BIND >> /usr/local/lib/R/etc/Renviron.site; \

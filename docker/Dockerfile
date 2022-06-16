@@ -7,6 +7,7 @@ RUN echo 'set visualbell' >> /root/.vimrc
 # Add DOI CA to local CAs so that SSL can work over VPN
 COPY DOIRootCA2.crt /usr/local/share/ca-certificates
 RUN update-ca-certificates
+ENV CURL_CA_BUNDLE /etc/ssl/certs/ca-certificates.crt
 
 # Set a default scheduler for clustermq. This can be overridden in the
 # _targets.R itself. The multicore should be nice for saving memory as it is
@@ -22,7 +23,6 @@ RUN update-ca-certificates
 # instead of the one included with the package.
 RUN echo '\n\
 options(clustermq.scheduler = "multicore")\n\
-#options(repos = c(REPO_NAME = "https://rpkg.chs.usgs.gov/prod-cran/latest"))\n\
 Sys.setenv(GLM_PATH = "/usr/local/bin/GLM/glm")' \
   >> /usr/local/lib/R/etc/Rprofile.site
 
@@ -61,10 +61,12 @@ RUN git clone https://github.com/AquaticEcoDynamics/libplot.git && \
   cd .. && \
   rm -rf *
 
+# Install some packages which aren't on CRAN or aren't recent enough on CRAN
 RUN Rscript -e 'library(remotes); \
-                install_github("GLEON/GLMr"); \
-                install_github("GLEON/GLM3r"); \
-                install_github("GLEON/glmtools");' \
+                install_github("GLEON/GLMr", upgrade = "never"); \
+                install_github("GLEON/GLM3r", upgrade = "never"); \
+                install_github("GLEON/glmtools", upgrade = "never"); \
+                install_github("USGS-R/ncdfgeom", upgrade = "never");' \
   && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # Install the necessary pipeline and parallelization packages for R
@@ -73,7 +75,6 @@ RUN install2.r --error \
   clustermq \
   fst \
   igraph \
-  ncdfgeom \
   retry \
   RNetCDF \
   tarchetypes \

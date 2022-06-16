@@ -1,9 +1,11 @@
 version: "3.1"
 services:
   glm_test:
-    image: jrossusgs/glm3r:v0.7
+    image: jrossusgs/glm3r:v0.7.1
     build:
       context: .
+      cache_from:
+        - jrossusgs/glm3r:latest
     ports:
       - "8787:8787"
     volumes:
