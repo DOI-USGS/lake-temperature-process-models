@@ -47,8 +47,13 @@ Here's how to get the image that Jesse built from Dockerhub and translate it to 
 
 ``` bash
 cd /caldera/projects/usgs/water/iidd/datasci/lake-temp/lake-temperature-process-models
-singularity pull docker://jrossusgs/glm3r:v0.7
-# now you can see the singularity image: it is a file called glm3r_v0.7.sif
+singularity pull docker://jrossusgs/glm3r:v0.7.1
+
+# Now you can see the singularity image: it is a file called glm3r_v0.7.1.sif.
+# Create a symlink so that the launch-rstudio-container.slurm points to the new
+# container.
+rm glm3r.sif
+ln -s glm3r_v0.7.1.sif glm3r.sif
 ```
 
 **Running the pipeline in the Singularity container**
@@ -57,12 +62,12 @@ Here's how to build targets using the Singularity container and the `targets::ta
 
 ``` r
 # Build GCM-driven GLM models, in parallel
-srun --pty -c 72 -t 7:00:00 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=60)'
+srun --pty -c 72 -t 7:00:00 -A watertemp singularity exec glm3r.sif Rscript -e 'targets::tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=60)'
 ```
 
 ``` r
 # Build NLDAS-driven GLM models, in parallel
-srun --pty -c 72 -t 1:00:00 -A watertemp singularity exec glm3r_v0.7.sif Rscript -e 'targets::tar_make_clustermq(p2_nldas_glm_uncalibrated_runs, workers=60)'
+srun --pty -c 72 -t 1:00:00 -A watertemp singularity exec glm3r.sif Rscript -e 'targets::tar_make_clustermq(p2_nldas_glm_uncalibrated_runs, workers=60)'
 ```
 
 **Running the pipeline interactively**
@@ -70,7 +75,7 @@ srun --pty -c 72 -t 1:00:00 -A watertemp singularity exec glm3r_v0.7.sif Rscript
 Here's how to run the Singularity container interactively on an allocated job:
 
 ``` r
-srun --pty -c 72 -t 10:00:00 -A watertemp singularity exec glm3r_v0.7.sif bash
+srun --pty -c 72 -t 10:00:00 -A watertemp singularity exec glm3r.sif bash
 R
 library(targets)
 tar_make_clustermq(p2_gcm_glm_uncalibrated_runs, workers=72)
@@ -86,7 +91,7 @@ In git bash window:
 [hcorson-dosch@tg-login1 lake-temperature-process-models] umask 002
 [hcorson-dosch@tg-login1 lake-temperature-process-models] screen # set up screen so that if lose Pulse Secure connection, run continues
 [hcorson-dosch@tg-login1 lake-temperature-process-models] module load singularity slurm
-[hcorson-dosch@tg-login1 lake-temperature-process-models] srun --pty -c 72 -t 10:00:00 -A watertemp singularity exec glm3r_v0.7.sif bash # Here I'm requesting 72 cores (1 node) for 10 hours
+[hcorson-dosch@tg-login1 lake-temperature-process-models] srun --pty -c 72 -t 10:00:00 -A watertemp singularity exec glm3r.sif bash # Here I'm requesting 72 cores (1 node) for 10 hours
 ```
 Once the resources have been allocated, you'll immediately be transferred to the allocated node, and will be in the container environment.
 
@@ -183,9 +188,9 @@ The pipeline can be run in parallel locally through docker, just as it can be ru
 Simple command-line R interface:
 
 ``` bash
-docker pull jrossusgs/glm3r:v0.7
+docker pull jrossusgs/glm3r:v0.7.1
 cd ~/lake-temperature-process-models
-docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.7 R
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusgs/glm3r:v0.7.1 R
 # Now you have an R prompt in the container, with the project directory mounted at `/lakes/`.
 # You can `setwd("/lakes")` and start working.
 ```
@@ -193,9 +198,9 @@ docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -it jrossusg
 Or alternatively, you could run RStudio in the container and access it through your browser (user is rstudio, password set in the startup command as mypass).
 
 ``` bash
-docker pull jrossusgs/glm3r:v0.7
+docker pull jrossusgs/glm3r:v0.7.1
 cd ~/lake-temperature-process-models
-docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787 -e PASSWORD=mypass -e ROOT=TRUE -d jrossusgs/glm3r:v0.7
+docker run -v '/home/jross/lake-temperature-process-models/:/lakes' -p 8787:8787 -e PASSWORD=mypass -e ROOT=TRUE -d jrossusgs/glm3r:v0.7.1
 ```
 
 ``` r
