@@ -53,6 +53,8 @@ touch ${workdir}/singularity_vars
 # https://github.com/rstudio/rstudio/blob/v1.4.1106/src/cpp/server/ServerSessionManager.cpp#L126
 export SINGULARITYENV_RSTUDIO_SESSION_TIMEOUT=0
 
+export SINGULARITYENV_USER=$(id -un)
+
 # Set the local directory as the place for session information. This should make
 # command line history more relevant, as it will be restricted to the project
 # currently being worked on.
@@ -60,15 +62,14 @@ export SINGULARITYENV_RSTUDIO_SESSION_TIMEOUT=0
 # Pointer here: https://support.rstudio.com/hc/en-us/articles/218730228-Resetting-a-user-s-state-on-RStudio-Workbench-RStudio-Server
 # RStudio Workbench admin guide here: https://docs.rstudio.com/ide/server-pro/r_sessions/customizing_session_settings.html
 # XDG Base Directory Specification here: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
-export SINGULARITYENV_XDG_DATA_HOME=$(pwd)/.local_${USER}/share
+export SINGULARITYENV_XDG_DATA_HOME=$(pwd)/.local_${SINGULARITYENV_USER}/share
 
-export SINGULARITYENV_USER=$(id -un)
 export SINGULARITYENV_PASSWORD=$(openssl rand -base64 15)
 # get unused socket per https://unix.stackexchange.com/a/132524
 # tiny race condition between the python & singularity commands
 readonly PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
 cat 1>&2 <<END
-1. SSH tunnel from your workstation using the following command:
+1. FROM YOUR LOCAL WORKSTATION, make an ssh tunnel using the following command:
 
    ssh -N -L 8787:${HOSTNAME}:${PORT} ${SINGULARITYENV_USER}@tallgrass.cr.usgs.gov
 
@@ -88,13 +89,12 @@ When done using RStudio Server, terminate the job by:
 END
 
 module load singularity
-singularity exec  glm3r_v0.7.sif \
+singularity exec  glm3r.sif \
     bash -c "cp /usr/local/lib/R/etc/Renviron.site.orig /usr/local/lib/R/etc/Renviron.site; \
             echo SINGULARITY_CONTAINER=\$SINGULARITY_CONTAINER >> /usr/local/lib/R/etc/Renviron.site; \
             echo SINGULARITY_BIND=\$SINGULARITY_BIND >> /usr/local/lib/R/etc/Renviron.site; \
-            echo SLURM_JOB_CPUS_PER_NODE=\$SLURM_JOB_CPUS_PER_NODE >> /usr/local/lib/R/etc/Renviron.site; \
             rserver --www-port=${PORT} \
-                    --server-user=${USER} \
+                    --server-user=${SINGULARITYENV_USER} \
                     --auth-none=0 \
                     --auth-pam-helper-path=pam-helper \
                     --auth-stay-signed-in-days=30 \
