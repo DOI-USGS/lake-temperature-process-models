@@ -1,0 +1,57 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(tidyverse.quiet = TRUE)
+current_date <- Sys.Date()
+```
+---
+title: "Summary of GLM runs"
+output: html_document
+date: `r current_date`
+---
+
+### NLDAS runs
+``` {r, echo = FALSE}
+tar_load(p1_nldas_site_ids)
+tar_load(p1_lake_to_state_xwalk_df)
+tar_load(p2_nldas_glm_uncalibrated_runs)
+tar_load(p2_nldas_glm_uncalibrated_run_groups)
+tar_load(p3_nldas_glm_uncalibrated_output_feather_tibble)
+tar_load(p1_nldas_dates)
+
+nldas_timeperiod <- sprintf('%s to %s', p1_nldas_dates$driver_start_date, p1_nldas_dates$driver_end_date)
+nldas_run_summary <- p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+  group_by(state) %>%
+  summarize(n_lakes = length(unique(site_id)), .groups='keep')
+```
+
+Using `r unique(p2_nldas_glm_uncalibrated_runs$driver)` driver data and GLM version `r unique(p2_nldas_glm_uncalibrated_runs$glm_version)`, we modeled `r length(p1_nldas_site_ids)` lakes across `r length(unique(p1_lake_to_state_xwalk_df$state))` states (`r unique(p1_lake_to_state_xwalk_df$state)`). For each lake, we modeled lake temperatures from `r nldas_timeperiod`. Models ran successfully for `r length(unique(p2_nldas_glm_uncalibrated_run_groups$site_id))` lakes.
+
+``` {r nldas_run_summary, echo = FALSE, results = 'asis'}
+library(knitr)
+kable(nldas_run_summary, caption = "Summary of successful NLDAS runs")
+```
+
+### GCM runs
+
+```{r, echo=FALSE}
+tar_load(p1_gcm_site_ids)
+tar_load(p1_lake_cell_tile_xwalk_df)
+tar_load(p2_gcm_glm_uncalibrated_runs)
+tar_load(p2_gcm_glm_uncalibrated_run_groups)
+tar_load(p3_gcm_glm_uncalibrated_output_feather_tibble)
+tar_load(p1_gcm_dates)
+
+gcm_timeperiod_1 <- sprintf('%s to %s', p1_gcm_dates$driver_start_date[1], p1_gcm_dates$driver_end_date[1])
+gcm_timeperiod_2 <- sprintf('%s to %s', p1_gcm_dates$driver_start_date[2], p1_gcm_dates$driver_end_date[2])
+gcm_timeperiod_3 <- sprintf('%s to %s', p1_gcm_dates$driver_start_date[3], p1_gcm_dates$driver_end_date[3])
+gcm_run_summary <- p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+  group_by(state) %>%
+  summarize(n_lakes = length(unique(site_id)), .groups='keep')
+```
+
+Using driver data for `r length(unique(p2_gcm_glm_uncalibrated_runs$driver))` GCMs (`r unique(p2_gcm_glm_uncalibrated_runs$driver)`) and GLM version `r unique(p2_gcm_glm_uncalibrated_runs$glm_version)`, we modeled `r length(p1_gcm_site_ids)` lakes across `r length(unique(p1_lake_cell_tile_xwalk_df$state))` states (`r unique(p1_lake_cell_tile_xwalk_df$state)`). For each lake and each GCM, we modeled lake temperatures during three time periods: `r gcm_timeperiod_1`, `r gcm_timeperiod_2`, and `r gcm_timeperiod_3`. Models for all three time periods for all `r length(unique(p2_gcm_glm_uncalibrated_run_groups$driver))` GCMs ran successfully for `r length(unique(p2_gcm_glm_uncalibrated_run_groups$site_id))` lakes.
+
+``` {r gcm_run_summary, echo = FALSE, results = 'asis'}
+kable(gcm_run_summary, caption = "Summary of successful GCM runs")
+```
