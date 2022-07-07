@@ -27,7 +27,7 @@ Using NLDAS driver data and GLM version `r GLM3r::glm_version(as_char = TRUE)`, 
 
 ``` {r nldas_run_summary, echo = FALSE, results = 'asis'}
 library(knitr)
-kable(nldas_run_summary, caption = "Summary of successful NLDAS runs")
+kable(nldas_run_summary, caption = "Count of lakes with NLDAS-driven GLM predictions, by state")
 ```
 
 ### GCM runs
@@ -49,5 +49,28 @@ gcm_run_summary <- p3_gcm_glm_uncalibrated_output_feather_tibble %>%
 Using driver data for `r length(unique(p3_gcm_glm_uncalibrated_output_feather_tibble$driver))` GCMs (`r unique(p3_gcm_glm_uncalibrated_output_feather_tibble$driver)`) and GLM version `r GLM3r::glm_version(as_char = TRUE)`, we modeled `r length(p1_gcm_site_ids)` lakes across `r length(unique(p1_lake_cell_tile_xwalk_df$state))` states (`r unique(p1_lake_cell_tile_xwalk_df$state)`). For each lake and each GCM, we modeled lake temperatures during three time periods: `r gcm_timeperiod_1`, `r gcm_timeperiod_2`, and `r gcm_timeperiod_3`. Models for all three time periods for all `r length(unique(p3_gcm_glm_uncalibrated_output_feather_tibble$driver))` GCMs ran successfully for `r length(unique(p3_gcm_glm_uncalibrated_output_feather_tibble$site_id))` lakes.
 
 ``` {r gcm_run_summary, echo = FALSE, results = 'asis'}
-kable(gcm_run_summary, caption = "Summary of successful GCM runs")
+kable(gcm_run_summary, caption = "Count of lakes with GCM-driven GLM predictions, by state")
+```
+
+### Overall summary
+``` {r p3_nldas_glm_uncalibrated_output_feather_tibble, p3_gcm_glm_uncalibrated_output_feather_tibble, echo = FALSE}
+nldas_and_gcm_sites <- intersect(unique(p3_nldas_glm_uncalibrated_output_feather_tibble$site_id),
+                                 unique(p3_gcm_glm_uncalibrated_output_feather_tibble$site_id))
+
+run_all <- p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+  group_by(site_id, state) %>%
+  summarize(n_GCM_models=n(), .groups='keep') %>%
+  inner_join(
+    p3_nldas_glm_uncalibrated_output_feather_tibble %>% group_by(site_id, state) %>%
+      summarize(n_NLDAS_models = n(), .groups='keep'),
+    by=c('site_id','state'))
+
+nldas_gcm_run_summary <- run_all %>%
+  group_by(state) %>%
+  summarize(n_lakes = length(unique(site_id)), .groups='keep') 
+```
+Overall, both NLDAS and GCM models ran successfully for `r length(nldas_and_gcm_sites)` lakes.
+
+``` {r nldas_gcm_run_summary, echo = FALSE, results = 'asis'}
+kable(nldas_gcm_run_summary, caption = "Count of lakes with NLDAS- and GCM-driven GLM predictions, by state")
 ```
