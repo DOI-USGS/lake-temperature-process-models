@@ -118,5 +118,10 @@ p3 <- list(
     },
     format = 'file',
     pattern = map(p3_nldas_glm_uncalibrated_output_feather_groups)
-  )
+  ),
+  
+  ##### Generate combined run summary #####
+  tar_render(p3_run_summary,
+             '3_extract/out/GLM_run_summary.Rmd',
+             packages = c('knitr'))
 )
