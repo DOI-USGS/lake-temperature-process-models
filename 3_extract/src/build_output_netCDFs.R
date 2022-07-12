@@ -244,9 +244,9 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     # Run these ncdf commands from the directory of the files:
     project_dir <- setwd(dirname(nc_file))
     
-    # Set up precision arguments for each variable using vars_info tibble
+    # Set up precision arguments for each variable using nc_var_info tibble
     # --ppc key1=val1#key2=val2
-    precision_args <- paste(paste(vars_info$var_name, vars_info$compression_precision, sep = '='), collapse = '#')
+    precision_args <- paste(paste(nc_var_info$var_name, nc_var_info$compression_precision, sep = '='), collapse = '#')
     
     # Compress and quantize the file
     # This command requires that NCO be installed and able to be
