@@ -18,8 +18,6 @@ This repository is for running uncalibrated GLM models of lake temperatures.
   * Created within the [targets sub-pipeline](https://github.com/USGS-R/lake-temperature-model-prep/blob/main/_targets.R), look for the lake_cell_tile_xwalk_df target
 * Munged GCM netCDF files (one per GCM): `'7_drivers_munge/out/GCM_{gcm name}.nc'` --> `'1_prep/in/GCM_{gcm name}.nc'`
 
->>>>>>> 6b572ff6097d832550455ba3ca2ba5868def1fcf
-
 ## Running the pipeline on HPC, in parallel
 
 ### Tallgrass quickstart

@@ -22,11 +22,6 @@ pull_site_coords <- function(lake_centroids_sf_rds, sites) {
 #' @param nc_var_info variables and descriptions to store in NetCDF
 #' @param site_coords WGS84 coordinates of lake centroids
 #' @param compression T/F if the nc file should be compressed after creation
-
-# idea is to create the file with write_timeseries_dsg() by perhaps filling with the zero depth data, 
-# then create a secondary function to add the depth dimension and add the additional data to those.
-# that later modification would be done with RNetCDF per explorations here:
-# https://github.com/hcorson-dosch/lake-temperature-model-prep/blob/bc4094cfb871a1b61dbfa78e4a9bae2c73789243/7_drivers_munge/src/GCM_driver_nc_utils.R#L101-L158
 generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info, site_coords, compression) {
   # NOTE: adding a stop() for now while compression code and documentation still
   # needs to be refined further, but retaining draft code below
@@ -98,13 +93,8 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
   ice_data_metadata <- list(name = ice_metadata$var_name, long_name = ice_metadata$longname)
 
   ### CODE TO BUILD NETCDFS
-  ## Write surface preds with write_timeseries_dsg()
 
   # Get ice flags in wide format
-  # issue: need to filter and pivot - what is most efficient?
-  # approach 1: convert dataframe to data.table. Set keys (driver, depth) and use keys to filter. transpose data.table
-  # approach 2: loop through site ids, filter data to site, depth, driver. add data to matrix. convert matrix to data.frame
-  # approach 3: use dplyr to pivot filtered tibble then convert to data.frame
   skipped_ids_ice <- c()
   ice_wide <- matrix(rep(NA_real_, length(glm_dates) * length(site_ids)), ncol = length(site_ids))
   for (i in 1:length(site_ids)) {
@@ -118,12 +108,6 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
   }
   # convert to data.frame since that is what the write_timeseries_dsg() file expects
   ice_wide <- as.data.frame(ice_wide) %>% setNames(site_ids)
-  
-  # # pivoting approach
-  # ice_wide <- ice_data %>%
-  #   pivot_wider(id_cols = c("time"), names_from = site_id, values_from = ice) %>%
-  #   select(-time) %>%
-  #   as.data.frame()
   
   # Check if nc file already exists, and therefore should be added to,
   # or if it needs to be created
@@ -149,8 +133,7 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
                                  add_to_existing = var_add_to_existing,
                                  overwrite = TRUE)
 
-  ## modify and add new dims (depth, GCMs?) and temp preds with RNetCDF
-  # For now, only add dim for depth (3D netCDF)
+  # Modify to add dim for depth (3D netCDF)
   nc <- RNetCDF::open.nc(nc_file, write=TRUE)
   
   # Modify global feature type and ice feature type
@@ -201,32 +184,6 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     remove(temp_wide)
   }
   var.put.nc(nc, temp_data_metadata$name, array_3d, start=c(1,1,1), count=c(dim(array_3d)))
-  
-  # # Add dimension for GCMs
-  # drivers <- unique(lake_gcm_info$driver)
-  # drivers_dim_name <- "GCM"
-  # n_drivers <- length(drivers)
-  # # define dimensions
-  # dim.def.nc(nc, drivers_dim_name, n_drivers, unlim=FALSE)
-  # # set up GCM info using ncdfgeom function `add_var()`
-  # add_var(nc, drivers_dim_name, c(drivers_dim_name), "NC_CHAR", long_name = 'Notaro debiased downscaled GCM', data=drivers)
-  # # Populate the variable with the actual GCM names
-  # var.put.nc(nc, drivers_dim_name, drivers)
-  # 
-  # # Loop through remaining GCMs to add surface temps
-  # remaining_drivers <- drivers[!(drivers  %in% initial_driver)]
-  # # put_data_in_nc(nc, nt, n, data_name, data, alts)
-  # for (driver in remaining_drivers) {
-  #   
-  # }
-  
-  # loop through GCMs to add ice data
-  # 3-dimensions: time, site_id, 
-  # ice_metadata <- nc_var_info %>% filter(var_name=='ice')
-  # data_name = ice_metadata[['name']]
-  # for (driver in drivers) {
-  #   
-  # }
   
   # close netCDF
   RNetCDF::close.nc(nc)
