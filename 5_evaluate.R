@@ -32,12 +32,28 @@ p5 <- list(
                tar_group(),
              iteration = "group"),
   
+  # Pull vector of sites for which we have observations and GCM predictions
+  tar_target(p5_gcm_obs_sites,
+             p5_gcm_obs_for_eval %>% pull(site_id) %>% unique()),
+  
+  # Pull out lake depth for each site with observations and GCM predictions
+  tar_target(
+    p5_gcm_obs_depths,
+    purrr::map_df(p5_gcm_obs_sites, function(site_id) {
+      site_nml <- p1_gcm_nml_list_subset[[site_id]]
+      tibble(
+        site_id = site_id,
+        lake_depth = site_nml$lake_depth
+      )
+    })
+  ),
+  
   # Match GCM predictions to observations
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_gcm_pred_obs,
              match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_%s.feather', unique(p5_gcm_obs_for_eval_groups$site_id), p1_gcm_names),
-                            eval_obs = p5_gcm_obs_for_eval_groups, driver = p1_gcm_names),
-             pattern = map(cross(p5_gcm_obs_for_eval_groups, p1_gcm_names))),
+                            eval_obs = p5_gcm_obs_for_eval_groups, lake_depth = p5_gcm_obs_depths, driver = p1_gcm_names),
+             pattern = cross(map(p5_gcm_obs_for_eval_groups, p5_gcm_obs_depths), p1_gcm_names)),
   
   # Write matched GCM pred-obs to file
   tar_target(p5_gcm_pred_obs_csv,
@@ -54,14 +70,8 @@ p5 <- list(
   
   # Pull out lake depth for each GCM evaluation site
   tar_target(
-    p5_gcm_depths,
-    purrr::map_df(p5_gcm_eval_sites, function(site_id) {
-      site_nml <- p1_gcm_nml_list_subset[[site_id]]
-      tibble(
-        site_id = site_id,
-        lake_depth = site_nml$lake_depth
-      )
-    })
+    p5_gcm_eval_depths,
+    filter(p5_gcm_obs_depths, site_id %in% p5_gcm_eval_sites)
   ),
   
   # Prep matched preds for evaluation
@@ -69,7 +79,7 @@ p5 <- list(
   # Set up variables for which bias/accuracy will be calculated
   # Add fields for year, depth_class, doy, doy_bin, season, temp_bin
   tar_target(p5_gcm_pred_obs_eval,
-             prep_data_for_eval(p5_gcm_pred_obs, p5_gcm_depths, surface_max_depth = 1, 
+             prep_data_for_eval(p5_gcm_pred_obs, p5_gcm_eval_depths, surface_max_depth = 1, 
                                 bottom_depth_factor = 0.85, doy_bin_size = 5, temp_bin_size = 2)),
   
   # Filter GCM evaluation pred-obs to surface and bottom predictions and group by driver and depth class for evaluation
@@ -157,12 +167,28 @@ p5 <- list(
                tar_group(),
              iteration = "group"),
   
+  # Pull vector of sites for which we have observations and NLDAS predictions
+  tar_target(p5_nldas_obs_sites,
+             p5_nldas_obs_for_eval %>% pull(site_id) %>% unique()),
+  
+  # Pull out lake depth for each site with observations and NLDAS predictions
+  tar_target(
+    p5_nldas_obs_depths,
+    purrr::map_df(p5_nldas_obs_sites, function(site_id) {
+      site_nml <- p1_nldas_nml_list_subset[[site_id]]
+      tibble(
+        site_id = site_id,
+        lake_depth = site_nml$lake_depth
+      )
+    })
+  ),
+  
   # Match NLDAS predictions to observations
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_nldas_pred_obs,
              match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_NLDAS.feather', unique(p5_nldas_obs_for_eval_groups$site_id)),
-                            eval_obs = p5_nldas_obs_for_eval_groups, driver = 'NLDAS'),
-             pattern = map(p5_nldas_obs_for_eval_groups)),
+                            eval_obs = p5_nldas_obs_for_eval_groups, lake_depth = p5_nldas_obs_depths, driver = 'NLDAS'),
+             pattern = map(p5_nldas_obs_for_eval_groups, p5_nldas_obs_depths)),
 
   # Write matched NLDAS pred-obs to file
   tar_target(p5_nldas_pred_obs_csv,
@@ -179,14 +205,8 @@ p5 <- list(
   
   # Pull out lake depth for each NLDAS evaluation site
   tar_target(
-    p5_nldas_depths,
-    purrr::map_df(p5_nldas_eval_sites, function(site_id) {
-      site_nml <- p1_nldas_nml_list_subset[[site_id]]
-      tibble(
-        site_id = site_id,
-        lake_depth = site_nml$lake_depth
-      )
-    })
+    p5_nldas_eval_depths,
+    filter(p5_gcm_obs_depths, site_id %in% p5_gcm_eval_sites)
   ),
   
   # Prep matched preds for evaluation
@@ -194,7 +214,7 @@ p5 <- list(
   # Set up variables for which bias/accuracy will be calculated
   # Add fields for year, depth_class, doy, doy_bin, season, temp_bin
   tar_target(p5_nldas_pred_obs_eval,
-             prep_data_for_eval(p5_nldas_pred_obs, p5_nldas_depths, surface_max_depth = 1, 
+             prep_data_for_eval(p5_nldas_pred_obs, p5_nldas_eval_depths, surface_max_depth = 1, 
                                 bottom_depth_factor = 0.85, doy_bin_size = 5, temp_bin_size = 2)),
   
   # Filter NLDAS evaluation pred-obs to surface and bottom predictions and group by depth class for evaluation
