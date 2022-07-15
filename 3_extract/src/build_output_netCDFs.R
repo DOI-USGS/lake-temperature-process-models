@@ -79,7 +79,7 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
   
   # Set up attributes for NetCDF
   data_time_units <- "days since 1970-01-01 00:00:00"
-  source_info <- list('title' = sprintf('GLM predictions of lake temperature in MN lakes, driver: %s', unique(output_info$driver)))
+  source_info <- list('title' = sprintf('GLM predictions of lake temperature, driver: %s', unique(output_info$driver)))
   data_attributes <- source_info
   data_coordvar_long_names <- list(instance = "identifier for the lake location; NHDHR PermID", 
                                    time = "date of prediction",
