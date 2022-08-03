@@ -94,7 +94,7 @@ match_pred_obs <- function(preds_file, eval_obs, lake_depth, driver) {
     })
     return(interp_1d)
   })) %>%
-    filter(!is.na(pred)) %>% # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds predicted depth)
+    filter(!is.na(pred)) %>% # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds lake depth)
     mutate(driver = driver, .after=site_id) %>%
     select(-tar_group) # drop tar_group field
   
