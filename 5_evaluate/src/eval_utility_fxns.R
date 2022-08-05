@@ -71,7 +71,7 @@ match_pred_obs <- function(preds_file, eval_obs, lake_depth, driver) {
   }
   
   # Fill predictions to the maximum GLM prediction depth or to the maximum lake depth,
-  # if it exceeds the maximum GLM prediction depth
+  # if it exceeds the maximum GLM prediction depth. Fills with the known `pred` right above the new depth
   eval_preds <- eval_preds %>%
     arrange(time, depth) %>%
     fill(pred, .direction=c('down'))
