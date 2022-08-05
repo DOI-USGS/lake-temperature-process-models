@@ -32,18 +32,21 @@ get_eval_obs <- function(obs_feather, modeled_sites, start_date, end_date, min_o
 }
 
 #' @title Match predictions to observations for a single site
-#' @description For a single site, munge model predictions to long format and 
-#' interpolate them to the depths of the observations. Code adapted from 
+#' @description For a single site, munge model predictions to long format,
+#' extrapolate predictions on all dates to the maximum GLM prediction depth or 
+#' maximum lake depth (whichever is larger), and then interpolate the predictions  
+#' to the depths of the observations. Code adapted from 
 #' https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L14-L35 
 #' https://github.com/USGS-R/mntoha-data-release/blob/main/src/eval_utils.R#L113-L132
 #' @param preds_file The filepath for temperature predictions to use in evaluation. 
 #' The filepath corresponds to predictions for the site_id associated with `eval_obs`
 #' @param eval_obs temperature observations for a single site to use in evaluation
 #' (in long format).
+#' @param lake_depth Tibble of site_id and lake_depth for the current site
 #' @param driver weather/climate driver used to generate GLM predictions
 #' @return A tibble with predictions matched to observations (on available dates)
 #' by date and by depth
-match_pred_obs <- function(preds_file, eval_obs, driver) {
+match_pred_obs <- function(preds_file, eval_obs, lake_depth, driver) {
   # Read in model predictions for the current site
   # filter to dates with observations
   # and munge model predictions to long format
@@ -53,9 +56,27 @@ match_pred_obs <- function(preds_file, eval_obs, driver) {
     select(-ice) %>%
     munge_long() %>% # Fxn in 4_visualize/src/plot_data_utility_fxns.R
     mutate(depth = as.numeric(depth)) %>% 
-    rename(pred = temperature) %>%
-    arrange(time, depth)
+    rename(pred = temperature)
   
+  # If lake_depth exceeds the maximum GLM prediction depth
+  if (lake_depth$lake_depth > max(eval_preds$depth)) {
+    # Generate a new dataframe with a row for maximum lake depth for each date
+    new_depths <- tibble(
+      time = unique(eval_preds$time),
+      site_id = lake_depth$site_id,
+      depth = lake_depth$lake_depth
+    )
+    eval_preds <- eval_preds %>%
+      bind_rows(new_depths)
+  }
+  
+  # Fill predictions to the maximum GLM prediction depth or to the maximum lake depth,
+  # if it exceeds the maximum GLM prediction depth. Fills with the known `pred` right above the new depth
+  eval_preds <- eval_preds %>%
+    arrange(time, depth) %>%
+    fill(pred, .direction=c('down'))
+  
+  # Rename observed temperature to `obs`
   eval_obs <- eval_obs %>%
     rename(obs = temperature)
   
@@ -73,7 +94,7 @@ match_pred_obs <- function(preds_file, eval_obs, driver) {
     })
     return(interp_1d)
   })) %>%
-    filter(!is.na(pred)) %>% # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds predicted depth)
+    filter(!is.na(pred)) %>% # Filter out rows where there are no matching predictions for observed depths (e.g. observed depth exceeds lake depth)
     mutate(driver = driver, .after=site_id) %>%
     select(-tar_group) # drop tar_group field
   
@@ -83,7 +104,7 @@ match_pred_obs <- function(preds_file, eval_obs, driver) {
 #' @title prep pred-obs data for evaluation
 #' @description add grouping variables to matched pred-obs for evaluation.
 #' @param pred_obs the tibble of matched observations and predictions
-#' @param lake_depths tibble of lake depths for evluation sites
+#' @param lake_depths tibble of lake depths for evaluation sites
 #' @param surface_max_depth maximum depth for which predictions are
 #' considered to be in the 'surface' depth class. Currently this is set
 #' as a global value, and is not lake-specific
