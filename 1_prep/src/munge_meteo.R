@@ -50,7 +50,7 @@ add_burn_in_out_to_meteo <- function(meteo_data, burn_in = 0, burn_out = 0){
 
 #' @title Split each GCM netCDF into csv files specific to cells and time periods
 #' @decription Create a csv file with driver data for the current gcm, for
-#' each cell, for each time period
+#' each cell, for each time period. Add burn-in/burn-out specified in `gcm_dates`
 #' @param gcm_nc filename of a GCM netCDF file
 #' @param gcm_name name of one of the six GCMs
 #' @param cell_nos vector of GCM cell ids
