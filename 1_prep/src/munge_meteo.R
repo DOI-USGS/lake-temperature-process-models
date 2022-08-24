@@ -162,7 +162,7 @@ munge_gcm_dates <- function(gcm_ncs, gcm_time_periods, burn_in, burn_out) {
     time_period = date_to_gcm_time_period(time, gcm_time_periods)
     ) %>%
     group_by(time_period) %>%
-    summarize(driver_start_date = min(time), driver_end_date = max(time)) %>%
+    summarize(driver_start_date = min(time), driver_end_date = max(time), .groups='keep') %>%
     mutate(
       driver_type = 'gcm',
       # a burn-in period only will have been added if the requested burn-in period was 
