@@ -171,6 +171,14 @@ p5 <- list(
   tar_target(p5_nldas_obs_sites,
              p5_nldas_obs_for_eval %>% pull(site_id) %>% unique()),
   
+  # Filter export tibble to only those sites with observations and NLDAS predictions
+  tar_target(
+    p5_nldas_export_tibble,
+    p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+      arrange(site_id) %>%
+      filter(site_id %in% p5_nldas_obs_sites)
+  ),
+  
   # Pull out lake depth for each site with observations and NLDAS predictions
   tar_target(
     p5_nldas_obs_depths,
@@ -186,9 +194,12 @@ p5 <- list(
   # Match NLDAS predictions to observations
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_nldas_pred_obs,
-             match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_NLDAS.feather', unique(p5_nldas_obs_for_eval_groups$site_id)),
-                            eval_obs = p5_nldas_obs_for_eval_groups, lake_depth = p5_nldas_obs_depths, driver = 'NLDAS'),
-             pattern = map(p5_nldas_obs_for_eval_groups, p5_nldas_obs_depths)),
+             {
+               tar_assert_identical(p5_nldas_export_tibble$site_id, unique(p5_nldas_obs_for_eval_groups$site_id), "p5_nldas_export_tibble site id doesn't match unique p5_nldas_obs_for_eval_groups site id")
+               match_pred_obs(preds_file = p5_nldas_export_tibble$export_fl,
+                              eval_obs = p5_nldas_obs_for_eval_groups, lake_depth = p5_nldas_obs_depths, driver = 'NLDAS')
+             },
+             pattern = map(p5_nldas_export_tibble, p5_nldas_obs_for_eval_groups, p5_nldas_obs_depths)),
 
   # Write matched NLDAS pred-obs to file
   tar_target(p5_nldas_pred_obs_csv,
