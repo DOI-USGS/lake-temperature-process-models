@@ -206,7 +206,7 @@ p5 <- list(
   # Pull out lake depth for each NLDAS evaluation site
   tar_target(
     p5_nldas_eval_depths,
-    filter(p5_gcm_obs_depths, site_id %in% p5_gcm_eval_sites)
+    filter(p5_nldas_obs_depths, site_id %in% p5_nldas_eval_sites)
   ),
   
   # Prep matched preds for evaluation
