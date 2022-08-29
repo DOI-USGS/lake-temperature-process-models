@@ -36,6 +36,17 @@ p5 <- list(
   tar_target(p5_gcm_obs_sites,
              p5_gcm_obs_for_eval %>% pull(site_id) %>% unique()),
   
+  # Filter export tibble to only those sites with observations and GCM predictions
+  # and group by site_id
+  tar_target(
+    p5_gcm_export_tibble_groups,
+    p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+      arrange(site_id) %>%
+      filter(site_id %in% p5_gcm_obs_sites) %>%
+      group_by(site_id) %>%
+      tar_group(),
+    iteration = "group"),
+  
   # Pull out lake depth for each site with observations and GCM predictions
   tar_target(
     p5_gcm_obs_depths,
@@ -51,9 +62,19 @@ p5 <- list(
   # Match GCM predictions to observations
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_gcm_pred_obs,
-             match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_%s.feather', unique(p5_gcm_obs_for_eval_groups$site_id), p1_gcm_names),
-                            eval_obs = p5_gcm_obs_for_eval_groups, lake_depth = p5_gcm_obs_depths, driver = p1_gcm_names),
-             pattern = cross(map(p5_gcm_obs_for_eval_groups, p5_gcm_obs_depths), p1_gcm_names)),
+             {
+               # Each branch has one site id, but must match predictions from each of the 6 GCM drivers
+               tar_assert_identical(unique(p5_gcm_export_tibble_groups$site_id), unique(p5_gcm_obs_for_eval_groups$site_id),
+                                    "unique p5_gcm_export_tibble_groups site id doesn't match unique p5_gcm_obs_for_eval_groups site id")
+               purrr::pmap_dfr(p5_gcm_export_tibble_groups, function(...) {
+                 site_gcm_export <- tibble(...)
+                 match_pred_obs(preds_file = site_gcm_export$export_fl,
+                                eval_obs = p5_gcm_obs_for_eval_groups,
+                                lake_depth = p5_gcm_obs_depths,
+                                driver = site_gcm_export$driver)
+               })
+             },
+             pattern = map(p5_gcm_export_tibble_groups, p5_gcm_obs_for_eval_groups, p5_gcm_obs_depths)),
   
   # Write matched GCM pred-obs to file
   tar_target(p5_gcm_pred_obs_csv,
@@ -171,6 +192,14 @@ p5 <- list(
   tar_target(p5_nldas_obs_sites,
              p5_nldas_obs_for_eval %>% pull(site_id) %>% unique()),
   
+  # Filter export tibble to only those sites with observations and NLDAS predictions
+  tar_target(
+    p5_nldas_export_tibble,
+    p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+      arrange(site_id) %>%
+      filter(site_id %in% p5_nldas_obs_sites)
+  ),
+  
   # Pull out lake depth for each site with observations and NLDAS predictions
   tar_target(
     p5_nldas_obs_depths,
@@ -186,9 +215,12 @@ p5 <- list(
   # Match NLDAS predictions to observations
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_nldas_pred_obs,
-             match_pred_obs(preds_file = sprintf('3_extract/out/GLM_%s_NLDAS.feather', unique(p5_nldas_obs_for_eval_groups$site_id)),
-                            eval_obs = p5_nldas_obs_for_eval_groups, lake_depth = p5_nldas_obs_depths, driver = 'NLDAS'),
-             pattern = map(p5_nldas_obs_for_eval_groups, p5_nldas_obs_depths)),
+             {
+               tar_assert_identical(p5_nldas_export_tibble$site_id, unique(p5_nldas_obs_for_eval_groups$site_id), "p5_nldas_export_tibble site id doesn't match unique p5_nldas_obs_for_eval_groups site id")
+               match_pred_obs(preds_file = p5_nldas_export_tibble$export_fl,
+                              eval_obs = p5_nldas_obs_for_eval_groups, lake_depth = p5_nldas_obs_depths, driver = 'NLDAS')
+             },
+             pattern = map(p5_nldas_export_tibble, p5_nldas_obs_for_eval_groups, p5_nldas_obs_depths)),
 
   # Write matched NLDAS pred-obs to file
   tar_target(p5_nldas_pred_obs_csv,
@@ -206,7 +238,7 @@ p5 <- list(
   # Pull out lake depth for each NLDAS evaluation site
   tar_target(
     p5_nldas_eval_depths,
-    filter(p5_gcm_obs_depths, site_id %in% p5_gcm_eval_sites)
+    filter(p5_nldas_obs_depths, site_id %in% p5_nldas_eval_sites)
   ),
   
   # Prep matched preds for evaluation
