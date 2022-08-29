@@ -63,6 +63,7 @@ p5 <- list(
   # map over obs_for_eval_groups (so parallelizable on Tallgrass)
   tar_target(p5_gcm_pred_obs,
              {
+               # Each branch has one site id, but must match predictions from each of the 6 GCM drivers
                tar_assert_identical(unique(p5_gcm_export_tibble_groups$site_id), unique(p5_gcm_obs_for_eval_groups$site_id),
                                     "unique p5_gcm_export_tibble_groups site id doesn't match unique p5_gcm_obs_for_eval_groups site id")
                purrr::pmap_dfr(p5_gcm_export_tibble_groups, function(...) {
