@@ -14,7 +14,7 @@ p3 <- list(
   tar_target(
     p3_gcm_glm_uncalibrated_output_feather_tibble,
     {
-      output_files <- p2_gcm_glm_uncalibrated_run_groups %>% # Already grouped by site_id
+      feather_tibble <- p2_gcm_glm_uncalibrated_run_groups %>% # Already grouped by site_id
         group_by(driver) %>% # Also group by driver (GCM) for creating export files
         group_modify(~ {
           output_file <- write_glm_output(.x, outfile_template='3_extract/out/GLM_%s_%s.feather')
@@ -24,7 +24,7 @@ p3 <- list(
             select(-driver)
         }, .keep=TRUE) %>%
         select(site_id, driver, export_fl, export_fl_hash, everything())
-      return(output_files)
+      return(feather_tibble)
     },
     pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
   
