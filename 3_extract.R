@@ -3,33 +3,30 @@ source('3_extract/src/process_glm_output.R')
 p3 <- list(
   ##### Extract GCM model output #####
   # Use grouped runs target to combine GCM glm output into feather files
-  # Function will generate the output feather file for each lake-gcm combo
-  # across all three time periods, truncating the output to the valid dates 
+  # write_glm_output() will generate the output feather file for each lake-gcm combo
+  # across all three time periods, truncating the output to the valid dates
   # for each time period (excluding the burn-in and burn-out periods) and
   # saving only the temperature predictions for each depth and ice flags
-  tar_target(
-    p3_gcm_glm_uncalibrated_output_feathers,
-    {
-      output_files <- p2_gcm_glm_uncalibrated_run_groups %>% # Already grouped by site_id
-        group_by(driver) %>% # Also group by driver (GCM) for creating export files
-        group_map(~ write_glm_output(.x, outfile_template='3_extract/out/GLM_%s_%s.feather'),
-                  .keep = TRUE) %>%
-        unlist()
-      return(output_files)
-    },
-    format = 'file',
-    pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
-  
-  # Generate a tibble with a row for each output file
-  # that includes the filename and its hash along with the
-  # site_id, driver (gcm name), the state the lake is in,  
-  # and the cell_no and tile_no for that lake.
+  # THEN, with generate_output_tibble(), generate a tibble with a row for each 
+  # output file that includes the filename and its hash along with the site_id, 
+  # driver (gcm name), the state the lake is in, and the cell_no and tile_no for 
+  # that lake.
   tar_target(
     p3_gcm_glm_uncalibrated_output_feather_tibble,
-    generate_output_tibble(p3_gcm_glm_uncalibrated_output_feathers,
-                           output_file_regex = "GLM_(.*)_(.*).feather",
-                           lake_xwalk = p1_lake_cell_tile_xwalk_df)
-  ),
+    {
+      feather_tibble <- p2_gcm_glm_uncalibrated_run_groups %>% # Already grouped by site_id
+        group_by(driver) %>% # Also group by driver (GCM) for creating export files
+        group_modify(~ {
+          output_file <- write_glm_output(.x, outfile_template='3_extract/out/GLM_%s_%s.feather')
+          output_tibble <- generate_output_tibble(output_file,
+                                 output_file_regex = "GLM_(.*)_(.*).feather",
+                                 lake_xwalk = p1_lake_cell_tile_xwalk_df) %>%
+            select(-driver)
+        }, .keep=TRUE) %>%
+        select(site_id, driver, export_fl, export_fl_hash, everything())
+      return(feather_tibble)
+    },
+    pattern = map(p2_gcm_glm_uncalibrated_run_groups)),
   
   # Save summary of output files
   tar_target(
