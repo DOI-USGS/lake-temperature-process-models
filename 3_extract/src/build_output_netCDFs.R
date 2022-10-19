@@ -147,12 +147,14 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
 
   # Define depth dimension - type: float, units of meters
   dim.def.nc(nc, depths_dim_name, n_depths, unlim=FALSE)
-  # set up GCM info using ncdfgeom function `add_var()`
-  add_var(nc, depths_dim_name, c(depths_dim_name), "NC_DOUBLE", 'm', -999, long_name = 'Depth of prediction beneath lake surface', data=all_depths)
-  # Populate the variable with the actual GCM names
-  var.put.nc(nc, depths_dim_name, all_depths)
+  # set up depth info using ncdfgeom function `add_var()`
+  add_var(nc, depths_dim_name, c(depths_dim_name), "NC_DOUBLE", 'm', -999, long_name = 'Depth of prediction beneath lake surface') #, data=all_depths
+  # add standard name
+  att.put.nc(nc, depths_dim_name, 'standard_name', "NC_CHAR", 'depth')
   # Set 'cf_role' attribute for depth - see http://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch09s05.html
   att.put.nc(nc, depths_dim_name, 'cf_role', "NC_CHAR", "profile_id")
+  # Populate the variable with the actual depths
+  var.put.nc(nc, depths_dim_name, all_depths)
 
   # Set up temp var metadata
   temp_metadata <- nc_var_info %>% filter(var_name=='temp')
@@ -166,7 +168,7 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
           long_name = temp_data_metadata[['long_name']])
   
   # Add coordinates
-  coordinates <- paste('time','lat','lon') # paste(pkg.env$time_var_name,pkg.env$lat_coord_var_name,pkg.env$lon_coord_var_name)
+  coordinates <- paste('time','lat','lon','depth') # paste(pkg.env$time_var_name,pkg.env$lat_coord_var_name,pkg.env$lon_coord_var_name)
   att.put.nc(nc, temp_data_metadata$name, 'coordinates', "NC_CHAR", coordinates)
   
   # add FeatureType information

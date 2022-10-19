@@ -1,8 +1,8 @@
 library(RNetCDF)
-library(ncmeta)
+library(ncmeta) # need version 0.3.5 or higher - devtools::install_github("https://github.com/hypertidy/ncmeta.git")
 library(tidyverse)
 
-nc_file <- '3_extract/out/GLM_NLDAS.nc'
+nc_file <- '3_extract/out/GLM_GCMS_MRI.nc' #GLM_NLDAS.nc'
 
 read_timeseries_profile_dsg  <- function(nc_file, read_data=TRUE) {
   nc <-  open.nc(nc_file)
@@ -11,6 +11,8 @@ read_timeseries_profile_dsg  <- function(nc_file, read_data=TRUE) {
   nc_meta <- get_nc_meta(nc)
   
   dsg <- get_dsg_meta(nc, nc_meta)
+  # add depth variable
+  dsg$depth <- filter(dsg$sn, .data$value == "depth")
   # Add profile id variable since featureType = timeSeriesProfile
   dsg$profile_id <- get_profile_id(nc_meta$attribute)
   
@@ -21,8 +23,15 @@ read_timeseries_profile_dsg  <- function(nc_file, read_data=TRUE) {
 
 nc_raw_data <- read_timeseries_profile_dsg(nc_file)
 
-ice_data <- nc_raw_data$data_frames$ice %>% mutate(time = nc_raw_data$time, .before = 1) %>% pivot_longer(cols = starts_with('nhdhr'), names_to='site_id', values_to = 'ice') %>% arrange(site_id, time)
-temp_data <- nc_raw_data$data_frames$temp %>% mutate(time = nc_raw_data$time, .before = 1) %>% pivot_longer(cols=(-time), names_to=c('site_id','depth'), names_pattern = '(.*)_(.*)', values_to='temperature') %>% mutate(depth = as.numeric(depth)) %>% arrange(site_id, time)
+ice_data <- nc_raw_data$data_frames$ice %>% 
+  mutate(time = nc_raw_data$time, .before = 1) %>% 
+  pivot_longer(cols = starts_with('nhdhr'), names_to='site_id', values_to = 'ice') %>% 
+  arrange(site_id, time)
+temp_data <- nc_raw_data$data_frames$temp %>% 
+  mutate(time = nc_raw_data$time, .before = 1) %>% 
+  pivot_longer(cols=(-time), names_to=c('site_id','depth'), names_pattern = '(.*)_(.*)', values_to='temperature') %>% 
+  mutate(depth = as.numeric(depth)) %>% 
+  arrange(site_id, time)
 temp_data_filtered <- temp_data %>% filter(!(is.na(temperature)))
 
 
@@ -130,7 +139,7 @@ get_dsg_meta <- function(nc, nc_meta = NULL) {
   dsg
 }
 
-# MODIFIED in read data section
+# MODIFIED to pull in depths and in read data section
 get_nc_list <- function(nc, dsg, nc_meta, read_data) {
   nc_list<-list()
   
@@ -158,6 +167,13 @@ get_nc_list <- function(nc, dsg, nc_meta, read_data) {
   } else {
     warning("no altitude coordinate found")
     nc_list$alts <- numeric(0)
+  }
+  
+  if(nrow(dsg$depth) > 0) { 
+    nc_list$depth <- var.get.nc(nc, dsg$depth$variable)
+  } else {
+    warning("no depth coordinate found")
+    nc_list$depth <- numeric(0)
   }
   
   # For all variables that have a 'coordinates' attribute that matches the one found earlier...
