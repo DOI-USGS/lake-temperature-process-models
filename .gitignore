@@ -6,6 +6,9 @@ _targets
 */tmp/*
 */out/*
 
+# Allow the Rmarkdown run summary to be committed
+!3_extract/out/GLM_run_summary.Rmd
+
 # Allow the nml template to be committed
 !1_prep/in/glm3_template.nml
 

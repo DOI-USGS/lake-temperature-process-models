@@ -80,7 +80,11 @@ run_glm3_model <- function(sim_dir, nml_obj, model_config, export_fl_template) {
   raw_meteo_fl <- model_config$meteo_fl
   
   # prepare to write inputs and results locally for quick I/O
+  # if the run simulation directory already exists (b/c previous run for site failed), 
+  # delete the simulation directory before creating a new one, in order to have 
+  # a clean record of the current run
   sim_lake_dir <- file.path(sim_dir, sprintf('%s_%s_%s', site_id, driver, time_period))
+  if (dir.exists(sim_lake_dir)) unlink(sim_lake_dir, recursive = TRUE)
   dir.create(sim_lake_dir, recursive=TRUE, showWarnings=FALSE)
   
   # copy meteo data to sim_lake_dir

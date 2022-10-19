@@ -1,4 +1,5 @@
 library(targets)
+library(tarchetypes)
 options(clustermq.scheduler = "multicore")
 
 suppressPackageStartupMessages(library(tidyverse))
