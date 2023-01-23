@@ -139,8 +139,8 @@ p1 <- list(
   
   # Define model start and end dates and note start of
   # burn-in and end of burn-out based on extent of NLDAS data
-  # (using 1/2/1979 - 12/31/1979 for burn-in, and 1/1/2021 - 
-  # 4/11/2021 for burn-out)
+  # (using 1/2/1979 - 12/31/1979 for burn-in, and 1/1/2022 - 
+  # 4/11/2022 for burn-out)
   tar_target(
     p1_nldas_dates,
     munge_nldas_dates(p1_nldas_csvs, p1_nldas_time_period)),
