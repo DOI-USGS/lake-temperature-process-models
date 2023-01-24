@@ -71,6 +71,9 @@ pull_data_for_sites <- function(nc, nc_info, var, sites, long_format = FALSE) {
     
     if (var == 'temp') {
       colnames(var_data) <- paste0(rep(sites, length(nc_info$depth)),'_', rep(nc_info$depth, each=length(sites)))
+      
+      # Remove excess depth columns (> lake depth), where all temp values = NA
+      var_data <- select(var_data, where(~sum(!is.na(.x)) > 0))
     } else {
       colnames(var_data) <- as.character(sites)
     }
@@ -78,15 +81,7 @@ pull_data_for_sites <- function(nc, nc_info, var, sites, long_format = FALSE) {
   }) %>%
     mutate(time = nc_info$time, .before = 1)
   
-  # If var is temp, remove excess depth columns (> lake depth), where all temp values = NA
-  if (var == 'temp') {
-    data_subset <- data_subset %>%
-      select(
-        where(
-          ~sum(!is.na(.x)) > 0
-        )
-      )
-  }
+
   
   # If requested, transform into long format
   if (long_format && var == 'temp') {
