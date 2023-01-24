@@ -168,32 +168,36 @@ p3 <- list(
   ),
   
   ###### Write NLDAS GLM output to netCDF ######
-  # Get vector of site_ids for which we have GCM output
+  # Group output feather tibble by state
+  tar_target(
+    p3_nldas_glm_uncalibrated_output_feather_groups,
+    p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+      group_by(state) %>%
+      tar_group(),
+    iteration = "group"
+  ),
+  
+  # Get vector of site_ids for which we have NLDAS output for each state
   tar_target(p3_nldas_export_site_ids,
-             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+             p3_nldas_glm_uncalibrated_output_feather_groups %>%
                arrange(site_id) %>%
-               pull(site_id)),
-  
-  # FOR TESTING, SUBSET
-  tar_target(p3_nldas_export_site_ids_SUBSET,
-             p3_nldas_export_site_ids[1:1000]),
-  tar_target(p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET,
-             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
-               filter(site_id %in% p3_nldas_export_site_ids_SUBSET)),
-  
-  # Pull out lake depth for each NLDAS export site
+               pull(site_id),
+             pattern = map(p3_nldas_glm_uncalibrated_output_feather_groups)),
+
+  # Pull out lake depth for NLDAS export sites within each state
   tar_target(
     p3_nldas_depths,
-    purrr::map_df(p3_nldas_export_site_ids_SUBSET, function(site_id) { # p3_nldas_export_site_ids
+    purrr::map_df(p3_nldas_export_site_ids, function(site_id) {
       site_nml <- p1_nldas_nml_list_subset[[site_id]]
       tibble(
         site_id = site_id,
         lake_depth = site_nml$lake_depth
       )
-    })
+    }),
+    pattern = map(p3_nldas_export_site_ids)
   ),
   
-  # Set vector of depths for which to keep temp preds, based on max depth of export lake
+  # Set vector of depths for which to keep temp preds, based on max depth of export lakes in each state
   # currently matching Andy's approach here: https://github.com/USGS-R/lake-temperature-lstm-static/blob/main/2_process/process_config.yaml#L8-L13
   tar_target(
     p3_nldas_depths_export,
@@ -211,46 +215,47 @@ p3 <- list(
       } else {
         c(seq(0,10, by=0.5),seq(11,19,by=1),seq(20,38, by=2),seq(40,95, by=5), seq(100, 190, by=10), seq(200, max(p3_nldas_depths$lake_depth, na.rm=TRUE),by=20))
       }
-    }
+    },
+    pattern = map(p3_nldas_depths)
   ),
   
-  # Pull latitude and longitude coordinates for exported site_ids
+  # Pull latitude and longitude coordinates for exported site_ids in each state
   tar_target(p3_nldas_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids_SUBSET)), # p3_nldas_export_site_ids
-  
-  # Write NLDAS GLM output to a netCDF file
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids),
+             pattern = map(p3_nldas_export_site_ids)), 
+
+  # Write NLDAS GLM output for each state to a netCDF file
   tar_target(
     p3_nldas_glm_uncalibrated_nc,
-    generate_output_nc(
-      nc_file = sprintf('3_extract/out/GLM_%s.nc', unique(p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET$driver)), # p3_nldas_glm_uncalibrated_output_feather_tibble
-      output_info = p3_nldas_glm_uncalibrated_output_feather_tibble_SUBSET, # p3_nldas_glm_uncalibrated_output_feather_tibble
-      export_depths = p3_nldas_depths_export,
-      nc_var_info = p3_nc_var_info,
-      site_coords = p3_nldas_site_coords, 
-      compression = FALSE),
+    {
+      nldas_nc_dir <- sprintf('3_extract/out/lake_temp_preds_glm_%s',
+                              unique(p3_nldas_glm_uncalibrated_output_feather_groups$driver))
+      if (!dir.exists(nldas_nc_dir)) dir.create(nldas_nc_dir)
+                              
+      generate_output_nc(
+        nc_file = file.path(nldas_nc_dir,
+                            sprintf('lake_temp_preds_glm_%s_%s.nc',
+                                    unique(p3_nldas_glm_uncalibrated_output_feather_groups$driver),
+                                    unique(p3_nldas_glm_uncalibrated_output_feather_groups$state))),
+        output_info = p3_nldas_glm_uncalibrated_output_feather_groups,
+        export_depths = p3_nldas_depths_export,
+        nc_var_info = p3_nc_var_info,
+        site_coords = p3_nldas_site_coords, 
+        compression = FALSE)
+    },
+    pattern = map(p3_nldas_glm_uncalibrated_output_feather_groups, p3_nldas_depths_export, p3_nldas_site_coords),
     format = 'file'
   ),
   
-  ###### Zip NLDAS GLM output ######
-  # Group output feather tibble by state
+  # Zip NLDAS GLM netCDFs into single zipped folder
   tar_target(
-    p3_nldas_glm_uncalibrated_output_feather_groups,
-    p3_nldas_glm_uncalibrated_output_feather_tibble %>%
-      group_by(state) %>%
-      tar_group(),
-    iteration = "group"
-  ),
-  
-  # Generate a zip file for each state, zipping the grouped feathers
-  tar_target(
-    p3_nldas_glm_uncalibrated_output_zips,
+    p3_nldas_glm_uncalibrated_nc_zip,
     {
-      files_to_zip <- p3_nldas_glm_uncalibrated_output_feather_groups$export_fl
-      zipfile_out <- sprintf('3_extract/out/GLM_NLDAS_%s.zip', unique(p3_nldas_glm_uncalibrated_output_feather_groups$state))
+      files_to_zip <- p3_nldas_glm_uncalibrated_nc
+      zipfile_out <- sprintf('%s.zip', unique(dirname(p3_nldas_glm_uncalibrated_nc)))
       zip_output_files(files_to_zip, zipfile_out)
     },
-    format = 'file',
-    pattern = map(p3_nldas_glm_uncalibrated_output_feather_groups)
+    format = 'file'
   ),
   
   ##### Generate combined run summary #####
