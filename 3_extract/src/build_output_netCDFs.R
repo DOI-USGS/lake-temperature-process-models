@@ -23,14 +23,7 @@ pull_site_coords <- function(lake_centroids_sf_rds, sites) {
 #' @param site_coords WGS84 coordinates of lake centroids
 #' @param compression T/F if the nc file should be compressed after creation
 generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info, site_coords, compression) {
-  # # NOTE: adding a stop() for now while compression code and documentation still
-  # # needs to be refined further, but retaining draft code below
-  # if (compression == TRUE) {
-  #   stop(paste('Compression is not fully supported at this time',
-  #              'Please re-run with the compression parameter set to FALSE',
-  #              sep='\n'))
-  # }
-  
+
   # Delete nc outfile if it exists already
   if (file.exists(nc_file)) {
     unlink(nc_file)
@@ -203,16 +196,9 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     # Run these ncdf commands from the directory of the files:
     project_dir <- setwd(dirname(nc_file))
     
-    # Set up precision arguments for each variable using nc_var_info tibble
-    # --ppc key1=val1#key2=val2
-    # precision_args <- paste(paste(nc_var_info$var_name, nc_var_info$compression_precision, sep = '='), collapse = '#')
-    
     # Compress and quantize the file
-    # This command requires that NCO be installed and able to be
+    # This command requires that the NetCDF library be installed and able to be
     # called by R via system commands
-    # see http://nco.sourceforge.net/
-    # system(sprintf("ncks -h --fl_fmt=netcdf4 --cnk_plc=g3d --cnk_dmn time,10 --ppc %s %s %s",
-    #                precision_args, basename(temp_nc_file), basename(nc_file)))
     system(sprintf("nccopy -k 4 -c time/10 -d7 %s %s",
                    basename(temp_nc_file), basename(nc_file)))
     # Switch back to the project directory
@@ -220,13 +206,13 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     
     # Delete the temporary (uncompressed) file if the final compressed
     # file has been created. If it hasn't, throw an error.
-    # Using this approach in place of tryCatch, since if NCO is the issue,
+    # Using this approach in place of tryCatch, since if nccopy is the issue,
     # R will throw a system error message, *not* a console error
     if (file.exists(nc_file)) {
       unlink(temp_nc_file)
     } else {
       stop(paste(sprintf('The %s netCDF file could not be compressed',temp_nc_file),
-                 'Make sure you have NCO netCDF operators installed on your system',
+                 'Make sure you have the NetCDF library installed on your system and, if on HPC, have loaded the netcdf module',
                  sep='\n'))
     }
   }
