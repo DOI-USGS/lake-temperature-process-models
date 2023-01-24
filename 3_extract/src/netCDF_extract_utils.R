@@ -33,7 +33,7 @@ read_timeseries_profile_dsg  <- function(nc_file, read_data=FALSE) {
 #' @description for the specified `sites`, pull data for the specified
 #' variable (`var`). The data will be pulled for all dates (for `var`
 #' = 'temp' | 'ice') and for all depths (if `var` is 'temp')
-#' @param nc the open netCDF object
+#' @param nc_file the filepath for the netCDF
 #' @param nc_info the information about the open netCDF, pulled using
 #' `read_timeseries_profile_dsg()`
 #' @param var the variable for which data should be pulled. Must be
@@ -43,7 +43,10 @@ read_timeseries_profile_dsg  <- function(nc_file, read_data=FALSE) {
 #' or not. Default = FALSE
 #' @returns a dataframe in long or wide format containing the data for
 #' the specified variable for the specified sites
-pull_data_for_sites <- function(nc, nc_info, var, sites, long_format = FALSE) {
+pull_data_for_sites <- function(nc_file, nc_info, var, sites, long_format = FALSE) {
+  # Open netCDF
+  nc <-  open.nc(nc_file)
+  on.exit(close.nc(nc), add  = TRUE)
   
   # Parameter checks
   if (!(var %in% c('ice', 'temp'))) {
@@ -65,9 +68,9 @@ pull_data_for_sites <- function(nc, nc_info, var, sites, long_format = FALSE) {
   data_subset <- purrr::map_dfc(site_index_groups, function(index_group) {
     # Find sites associated w/ set of indices
     sites <- nc_info$timeseries_id[index_group]
-    var_data <- as.data.frame(var.get.nc(nc, var, 
-                                         start =c(1, index_group[1], 1), 
-                                         count = c(length(nc_info$time), length(index_group), length(nc_info$depth)))) 
+    var_data <- as.data.frame(var.get.nc(nc, var,
+                                         start =c(1, index_group[1], 1),
+                                         count = c(length(nc_info$time), length(index_group), length(nc_info$depth))))
     
     if (var == 'temp') {
       colnames(var_data) <- paste0(rep(sites, length(nc_info$depth)),'_', rep(nc_info$depth, each=length(sites)))
@@ -80,8 +83,6 @@ pull_data_for_sites <- function(nc, nc_info, var, sites, long_format = FALSE) {
     return(var_data)
   }) %>%
     mutate(time = nc_info$time, .before = 1)
-  
-
   
   # If requested, transform into long format
   if (long_format && var == 'temp') {
