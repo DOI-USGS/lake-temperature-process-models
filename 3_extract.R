@@ -241,7 +241,7 @@ p3 <- list(
         export_depths = p3_nldas_depths_export,
         nc_var_info = p3_nc_var_info,
         site_coords = p3_nldas_site_coords, 
-        compression = FALSE)
+        compression = TRUE)
     },
     pattern = map(p3_nldas_glm_uncalibrated_output_feather_groups, p3_nldas_depths_export, p3_nldas_site_coords),
     format = 'file'
