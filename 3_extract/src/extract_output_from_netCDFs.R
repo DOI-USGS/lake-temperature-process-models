@@ -3,54 +3,36 @@ library(ncmeta) # need version 0.3.5 or higher - devtools::install_github("https
 library(tidyverse)
 source('3_extract/src/netCDF_extract_utils.R')
 
-nc_file <- '3_extract/out/Tallgrass/GLM_NLDAS_5k.nc' #GLM_NLDAS.nc'
+nc_file <- '3_extract/out/Tallgrass/EALSTM_NLDAS_WI.nc' # '3_extract/out/Tallgrass/GLM_NLDAS_10k.nc' #
 
-# for SMALL netCDF, can read directly w/ read_timeseries_profile_dsg
-# nc_raw_data <- read_timeseries_profile_dsg(nc_file, read_data=TRUE)
-# 
-# ice_data <- nc_raw_data$data_frames$ice %>% 
-#   mutate(time = nc_raw_data$time, .before = 1) %>% 
-#   pivot_longer(cols = starts_with('nhdhr'), names_to='site_id', values_to = 'ice') %>% 
-#   arrange(site_id, time)
-# temp_data <- nc_raw_data$data_frames$temp %>% 
-#   mutate(time = nc_raw_data$time, .before = 1) %>% 
-#   pivot_longer(cols=(-time), names_to=c('site_id','depth'), names_pattern = '(.*)_(.*)', values_to='temperature') %>% 
-#   mutate(depth = as.numeric(depth)) %>% 
-#   arrange(site_id, time)
-# temp_data_filtered <- temp_data %>% filter(!(is.na(temperature)))
+# Read in information about netCDF (variables, dates, etc.)
+# Warning 'no altitude coordinate found' is expected
+nc_info <- read_timeseries_profile_dsg(nc_file, read_data = FALSE) # read_data set to FALSE b/c netCDF is too large for all data to be read in at once
 
+# Define lake sites of interest
 
-nc_info <- read_timeseries_profile_dsg(nc_file, read_data=FALSE)
+# random selection
+lake_sites <- c("nhdhr_109943476", "nhdhr_109943604", "nhdhr_109943606", "nhdhr_{00A0B20D-B53E-4189-AE14-461AAC64BD53}", 
+                "nhdhr_114336399", "nhdhr_{08C38C24-CCB1-4DDB-97DB-8B8973AEE01D}", 
+                "nhdhr_114336431", "nhdhr_114336515", "nhdhr_114336521", "nhdhr_114336965", 
+                "nhdhr_{0416B77B-D03F-4C5B-B8A1-EAE9DA39A087}", "nhdhr_03ce2e4f-9689-46a6-817b-d1b303960399", 
+                "nhdhr_106374138", "nhdhr_106374184", "nhdhr_106374206", "nhdhr_106374244", 
+                "nhdhr_106374252", "nhdhr_106374254", "nhdhr_{02510024-2C0B-4F00-B866-7FBA96AE1EB4}", 
+                "nhdhr_114336967")
+
+# experimenting w/ fully and partially continuous site lists
+lake_sites <- c(nc_info$timeseries_id[3:13], nc_info$timeseries_id[1], nc_info$timeseries_id[90:95], nc_info$timeseries_id[65:66]) #nc_info$timeseries_id[1:20]# 
+
+# Open netCDF
 nc <- open.nc(nc_file)
 
-#temp
-data_var <- 'temp'
-time_subset <- nc_info$time[1:365]
-timeseries_ids <- nc_info$timeseries_id
-timeseries_ids_subset <- timeseries_ids[1:2]
-depths <- nc_info$depth
-temp_subset <- as.data.frame(var.get.nc( nc, data_var, start=c(1, 1, 1), count= c(length(time_subset), length(timeseries_ids_subset), length(depths))))
-colnames(temp_subset) <- paste0(rep(timeseries_ids_subset, length(depths)),'_', rep(depths, each=length(timeseries_ids_subset)))
-temp_data <- temp_subset %>% 
-  mutate(time = time_subset, .before = 1) %>% 
-  pivot_longer(cols=(-time), names_to=c('site_id','depth'), names_pattern = '(.*)_(.*)', values_to='temperature') %>% 
-  mutate(depth = as.numeric(depth)) %>% 
-  arrange(site_id, time)
-temp_data_filtered <- temp_data %>% filter(!(is.na(temperature)))
+# Pull temperature predictions (for all dates and all depths) for those lakes.
+# Depth units = meters, temperature units = degrees Celsius
+temp_data <- pull_data_for_sites(nc, nc_info, var = 'temp', sites = lake_sites, long_format = FALSE)
 
-# ice
-data_var <- 'ice'
-time_subset <- nc_info$time
-timeseries_ids_subset <- nc_info$timeseries_id
-depths <- nc_info$depth
-ice_subset <- as.data.frame(var.get.nc( nc, data_var, start=c(1, 1, 1), count= c(length(time_subset), length(timeseries_ids_subset), length(depths))))
-colnames(ice_subset) <- as.character(timeseries_ids_subset)
-ice_data <- ice_subset %>% 
-  mutate(time = time_subset, .before = 1)
+# Pull boolean ice predictions (for all dates) for those lakes
+# Ice units: 1 = ice is present; 0 = no ice is present
+ice_data <- pull_data_for_sites(nc, nc_info, var = 'ice', sites = lake_sites, long_format = TRUE)
 
-close.nc(nc_file)
-
-# only run if dataset is subset of full dataset
-# ice_long <- ice_data %>% 
-#   pivot_longer(cols = starts_with('nhdhr'), names_to='site_id', values_to = 'ice') %>%
-#   arrange(site_id, time)
+# close netCDF
+close.nc(nc)
