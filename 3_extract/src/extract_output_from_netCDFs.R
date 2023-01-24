@@ -3,7 +3,7 @@ library(ncmeta) # need version 0.3.5 or higher - devtools::install_github("https
 library(tidyverse)
 source('3_extract/src/netCDF_extract_utils.R')
 
-nc_file <- '3_extract/out/Tallgrass/EALSTM_NLDAS_WI.nc' # '3_extract/out/Tallgrass/GLM_NLDAS_10k.nc' #
+nc_file <- '3_extract/out/Tallgrass/GLM_NLDAS_10k.nc' #'3_extract/out/Tallgrass/EALSTM_NLDAS_WI.nc' # 
 
 # Read in information about netCDF (variables, dates, etc.)
 # Warning 'no altitude coordinate found' is expected
@@ -21,18 +21,13 @@ lake_sites <- c("nhdhr_109943476", "nhdhr_109943604", "nhdhr_109943606", "nhdhr_
                 "nhdhr_114336967")
 
 # experimenting w/ fully and partially continuous site lists
-lake_sites <- c(nc_info$timeseries_id[3:13], nc_info$timeseries_id[1], nc_info$timeseries_id[90:95], nc_info$timeseries_id[65:66]) #nc_info$timeseries_id[1:20]# 
-
-# Open netCDF
-nc <- open.nc(nc_file)
+lake_sites <- c(nc_info$timeseries_id[3:13], nc_info$timeseries_id[1], nc_info$timeseries_id[90:95], nc_info$timeseries_id[65:66]) # nc_info$timeseries_id[1:20]#
 
 # Pull temperature predictions (for all dates and all depths) for those lakes.
 # Depth units = meters, temperature units = degrees Celsius
-temp_data <- pull_data_for_sites(nc, nc_info, var = 'temp', sites = lake_sites, long_format = FALSE)
+temp_data <- pull_data_for_sites(nc_file, nc_info, var = 'temp', sites = lake_sites, long_format = FALSE)
 
 # Pull boolean ice predictions (for all dates) for those lakes
 # Ice units: 1 = ice is present; 0 = no ice is present
-ice_data <- pull_data_for_sites(nc, nc_info, var = 'ice', sites = lake_sites, long_format = TRUE)
+ice_data <- pull_data_for_sites(nc_file, nc_info, var = 'ice', sites = lake_sites, long_format = TRUE)
 
-# close netCDF
-close.nc(nc)
