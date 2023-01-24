@@ -145,7 +145,7 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
   depths_dim_name <- "depth"
   n_depths <- length(all_depths)
 
-  # Define depth dimension - type: float, units of meters
+  # Define depth dimension - type: double, units of meters
   dim.def.nc(nc, depths_dim_name, n_depths, unlim=FALSE)
   # set up depth info using ncdfgeom function `add_var()`
   add_var(nc, depths_dim_name, c(depths_dim_name), "NC_DOUBLE", 'm', -999, long_name = 'Depth of prediction beneath lake surface') #, data=all_depths
