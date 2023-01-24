@@ -1,4 +1,18 @@
-read_timeseries_profile_dsg  <- function(nc_file, read_data=TRUE) {
+#' @title read timeseries profile discrete sampling geometry netCDF
+#' @description read in information about the coordinates and variables in
+#' a discrete sampling geometry formatted netCDF file, and optionally
+#' read in the data associated with each variable as well.
+#' @param nc_file the filepath for the netCDF
+#' @param read_data boolean - should the actual data be read in, or 
+#' only the information about the netCDF coordinates, dimensions, 
+#' and variables. Default = FALSE
+#' @returns a ncdfgeom with 10 elements: time (dates), lats (latitudes 
+#' of lake centroids), lons (longitudes of lake centroids), alts (empty),
+#' depth (depths associated with temperature profiles), timeseries_id 
+#' (the lake site ids), varmeta (metadata for the variables), data_unit
+#' (units for the variables), data_precision (precision of the variables),
+#' and global attributes (netCDF title)
+read_timeseries_profile_dsg  <- function(nc_file, read_data=FALSE) {
   nc <-  open.nc(nc_file)
   on.exit(close.nc(nc), add  = TRUE)
   
@@ -13,6 +27,80 @@ read_timeseries_profile_dsg  <- function(nc_file, read_data=TRUE) {
   nc_list <- get_nc_list(nc, dsg, nc_meta, read_data)
   
   return(add_globals(nc_list, nc_meta))
+}
+
+#' @title pull data for sites
+#' @description for the specified `sites`, pull data for the specified
+#' variable (`var`). The data will be pulled for all dates (for `var`
+#' = 'temp' | 'ice') and for all depths (if `var` is 'temp')
+#' @param nc the open netCDF object
+#' @param nc_info the information about the open netCDF, pulled using
+#' `read_timeseries_profile_dsg()`
+#' @param var the variable for which data should be pulled. Must be
+#' either 'ice' or 'temp'
+#' @param sites a vector of site ids for which data will be pulled
+#' @param long_format boolean - should the returned data be in long format
+#' or not. Default = FALSE
+#' @returns a dataframe in long or wide format containing the data for
+#' the specified variable for the specified sites
+pull_data_for_sites <- function(nc, nc_info, var, sites, long_format = FALSE) {
+  
+  # Parameter checks
+  if (!(var %in% c('ice', 'temp'))) {
+    stop(sprintf("The provided var argument (%s) is not a valid variable choice. Valid options are 'ice' or 'temp'", var))
+  } 
+
+  sites_not_in_data <- sites[!(sites %in% nc_info$timeseries_id)]
+  if (length(sites_not_in_data) > 0) {
+    stop(sprintf("Data for site(s) %s are not included in the specified netCDF file", paste(sites_not_in_data, collapse=', ')))
+  }
+  
+  # If possible, group sites based on indices
+  sites <- sites[order(match(sites, nc_info$timeseries_id))] # sort sites based on order in netCDF
+  site_indices <- purrr::map(sites, ~ which(nc_info$timeseries_id == .x)) %>% unlist()
+  index_groups <- cumsum(c(1L, diff(site_indices) != 1))
+  site_index_groups <- split(site_indices, index_groups)
+  
+  # Pull data for requested variable for requested sites
+  data_subset <- purrr::map_dfc(site_index_groups, function(index_group) {
+    # Find sites associated w/ set of indices
+    sites <- nc_info$timeseries_id[index_group]
+    var_data <- as.data.frame(var.get.nc(nc, var, 
+                                         start =c(1, index_group[1], 1), 
+                                         count = c(length(nc_info$time), length(index_group), length(nc_info$depth)))) 
+    
+    if (var == 'temp') {
+      colnames(var_data) <- paste0(rep(sites, length(nc_info$depth)),'_', rep(nc_info$depth, each=length(sites)))
+    } else {
+      colnames(var_data) <- as.character(sites)
+    }
+    return(var_data)
+  }) %>%
+    mutate(time = nc_info$time, .before = 1)
+  
+  # If var is temp, remove excess depth columns (> lake depth), where all temp values = NA
+  if (var == 'temp') {
+    data_subset <- data_subset %>%
+      select(
+        where(
+          ~sum(!is.na(.x)) > 0
+        )
+      )
+  }
+  
+  # If requested, transform into long format
+  if (long_format && var == 'temp') {
+    data_subset <- data_subset %>%
+      pivot_longer(cols = (-time), names_to = c('site_id','depth'), names_pattern = '(.*)_(.*)', values_to='temperature') %>%
+      mutate(depth = as.numeric(depth)) %>%
+      arrange(site_id, time)
+  }  else if (long_format && var == 'ice') {
+    data_subset <- data_subset %>% 
+      pivot_longer(cols = (-time), names_to = 'site_id', values_to = 'ice') %>%
+      arrange(site_id, time)
+  }
+  
+  return(data_subset)
 }
 
 ###### Functions needed to run read_timeseries_profile_dsg() ###### 
