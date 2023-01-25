@@ -157,6 +157,25 @@ p3 <- list(
                   cross(p3_gcm_glm_uncalibrated_output_drivers, map(p3_gcm_depths_export, p3_gcm_site_coords)))
   ),
   
+  tar_target(
+    p3_gcm_glm_uncalibrated_nc_tibble,
+    tibble(
+      driver = unique(p3_gcm_glm_uncalibrated_output_feather_groups$driver),
+      state = unique(p3_gcm_glm_uncalibrated_output_feather_groups$state),
+      nc_file = p3_gcm_glm_uncalibrated_nc,
+      nc_file_hash = tools::md5sum(p3_gcm_glm_uncalibrated_nc)
+    ),
+    pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups, p3_gcm_glm_uncalibrated_nc)
+  ),
+  
+  tar_target(
+    p3_gcm_glm_uncalibrated_nc_tibble_groups,
+    p3_gcm_glm_uncalibrated_nc_tibble %>%
+      group_by(driver) %>%
+      tar_group(),
+    iteration = 'group'
+  ),
+  
   # Zip GCM GLM netCDFs into single zipped folder
   tar_target(
     p3_gcm_glm_uncalibrated_nc_zip,
@@ -165,6 +184,20 @@ p3 <- list(
       zipfile_out <- sprintf('%s.zip', unique(dirname(p3_gcm_glm_uncalibrated_nc)))
       zip_output_files(files_to_zip, zipfile_out)
     },
+    format = 'file'
+  ),
+  
+  # Zip GCM GLM netCDFs into folders by GCM
+  tar_target(
+    p3_gcm_glm_uncalibrated_nc_state_zips,
+    {
+      files_to_zip <- p3_gcm_glm_uncalibrated_nc_tibble_groups$nc_file
+      zipfile_out <- sprintf('%s_%s.zip', 
+                             unique(dirname(p3_gcm_glm_uncalibrated_nc_tibble_groups$nc_file)), 
+                             unique(p3_gcm_glm_uncalibrated_nc_tibble_groups$driver))
+      zip_output_files(files_to_zip, zipfile_out)
+    },
+    pattern = map(p3_gcm_glm_uncalibrated_nc_tibble_groups),
     format = 'file'
   ),
   
