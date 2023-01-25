@@ -199,7 +199,7 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     # Compress and quantize the file
     # This command requires that the NetCDF library be installed and able to be
     # called by R via system commands
-    system(sprintf("nccopy -k 4 -c time/10 -d5 %s %s",
+    system(sprintf("nccopy -k 4 -c time/10 -d1 %s %s",
                    basename(temp_nc_file), basename(nc_file)))
     # Switch back to the project directory
     setwd(project_dir)
