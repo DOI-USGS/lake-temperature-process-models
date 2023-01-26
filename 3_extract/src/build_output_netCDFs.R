@@ -203,6 +203,10 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     # Run these ncdf commands from the directory of the files:
     project_dir <- setwd(dirname(nc_file))
     
+    # Set up precision arguments for each variable using nc_var_info tibble
+    # --ppc key1=val1#key2=val2
+    precision_args <- paste(paste(nc_var_info$var_name, nc_var_info$compression_precision, sep = '='), collapse = '#')
+    
     # Compress and quantize the file
     # This command requires that NCO be installed and able to be
     # called by R via system commands
@@ -214,13 +218,13 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     
     # Delete the temporary (uncompressed) file if the final compressed
     # file has been created. If it hasn't, throw an error.
-    # Using this approach in place of tryCatch, since if nccopy is the issue,
+    # Using this approach in place of tryCatch, since if NCO is the issue,
     # R will throw a system error message, *not* a console error
     if (file.exists(nc_file)) {
       unlink(temp_nc_file)
     } else {
       stop(paste(sprintf('The %s netCDF file could not be compressed',temp_nc_file),
-                 'Make sure you have the NetCDF library installed on your system and, if on HPC, have loaded the netcdf module',
+                 'Make sure you have NCO netCDF operators installed on your system and, if on HPC, have loaded the nco and netcdf modules',
                  sep='\n'))
     }
   }
