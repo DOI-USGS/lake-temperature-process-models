@@ -23,7 +23,14 @@ pull_site_coords <- function(lake_centroids_sf_rds, sites) {
 #' @param site_coords WGS84 coordinates of lake centroids
 #' @param compression T/F if the nc file should be compressed after creation
 generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info, site_coords, compression) {
-
+  # NOTE: adding a stop() for now while compression code and documentation still
+  # needs to be refined further, but retaining draft code below
+  if (compression == TRUE) {
+    stop(paste('Compression is not fully supported at this time',
+               'Please re-run with the compression parameter set to FALSE',
+               sep='\n'))
+  }
+  
   # Delete nc outfile if it exists already
   if (file.exists(nc_file)) {
     unlink(nc_file)
@@ -197,10 +204,11 @@ generate_output_nc <- function(nc_file, output_info, export_depths, nc_var_info,
     project_dir <- setwd(dirname(nc_file))
     
     # Compress and quantize the file
-    # This command requires that the NetCDF library be installed and able to be
+    # This command requires that NCO be installed and able to be
     # called by R via system commands
-    system(sprintf("nccopy -k 4 -c time/10 -d1 %s %s",
-                   basename(temp_nc_file), basename(nc_file)))
+    # see http://nco.sourceforge.net/
+    system(sprintf("ncks -h --fl_fmt=netcdf4 --cnk_plc=g3d --cnk_dmn time,10 --ppc %s %s %s",
+                   precision_args, basename(temp_nc_file), basename(nc_file)))
     # Switch back to the project directory
     setwd(project_dir)
     
