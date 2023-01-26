@@ -69,7 +69,7 @@ p3 <- list(
   # Get vector of unique states for which we have GCM output
   tar_target(
     p3_gcm_glm_uncalibrated_output_states,
-    p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+    p3_gcm_glm_uncalibrated_output_feather_groups %>%
       arrange(state) %>%
       pull(state) %>%
       unique()),
@@ -77,14 +77,14 @@ p3 <- list(
   # Get vector of unique GCM drivers for which we have output
   tar_target(
     p3_gcm_glm_uncalibrated_output_drivers,
-    p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+    p3_gcm_glm_uncalibrated_output_feather_groups %>%
       arrange(driver) %>%
       pull(driver) %>%
       unique()),
   
   # Get vector of site_ids for which we have GCM output in each state - STATE SPECIFIC
   tar_target(p3_gcm_export_site_ids,
-             p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+             p3_gcm_glm_uncalibrated_output_feather_groups %>%
                filter(state == p3_gcm_glm_uncalibrated_output_states) %>%
                arrange(site_id) %>%
                pull(site_id) %>%
