@@ -55,7 +55,14 @@ p3 <- list(
     format = 'file'
   ),
   
-  ###### Write GCM GLM output to netCDF ######
+  # Get vector of site_ids for which we have GCM output
+  tar_target(p3_gcm_export_site_ids,
+             p3_gcm_glm_uncalibrated_output_feather_tibble %>%
+               arrange(site_id) %>%
+               pull(site_id) %>%
+               unique()),
+  
+  ###### Write GCM GLM output to netCDF - one per GCM per state ######
   # Group output feather tibble by gcm and by state
   tar_target(
     p3_gcm_glm_uncalibrated_output_feather_groups,
@@ -83,7 +90,7 @@ p3 <- list(
       unique()),
   
   # Get vector of site_ids for which we have GCM output in each state - STATE SPECIFIC
-  tar_target(p3_gcm_export_site_ids,
+  tar_target(p3_gcm_export_site_ids_states,
              p3_gcm_glm_uncalibrated_output_feather_groups %>%
                filter(state == p3_gcm_glm_uncalibrated_output_states) %>%
                arrange(site_id) %>%
@@ -94,14 +101,14 @@ p3 <- list(
   # Pull out lake depth for GCM export sites in each state - STATE SPECIFIC
   tar_target(
     p3_gcm_depths,
-    purrr::map_df(p3_gcm_export_site_ids, function(site_id) {
+    purrr::map_df(p3_gcm_export_site_ids_states, function(site_id) {
       site_nml <- p1_gcm_nml_list_subset[[site_id]]
       tibble(
         site_id = site_id,
         lake_depth = site_nml$lake_depth
       )
     }),
-    pattern = map(p3_gcm_export_site_ids)
+    pattern = map(p3_gcm_export_site_ids_states)
   ),
   
   # Set vector of depths for which to keep temp preds, based on max depth of export lakes in each state - STATE SPECIFIC
@@ -128,8 +135,8 @@ p3 <- list(
   
   # Pull latitude and longitude coordinates for exported site_ids in each state - STATE SPECIFIC
   tar_target(p3_gcm_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids),
-             pattern = map(p3_gcm_export_site_ids)),
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids_states),
+             pattern = map(p3_gcm_export_site_ids_states)),
   
   # Write GCM GLM output to netCDF files -- one per GCM, per state - GCM SPECIFIC *AND* STATE SPECIFIC 
   tar_target(
@@ -235,7 +242,13 @@ p3 <- list(
     format = 'file',
   ),
   
-  ###### Write NLDAS GLM output to netCDF ######
+  # Get vector of site_ids for which we have NLDAS output
+  tar_target(p3_nldas_export_site_ids,
+             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
+               arrange(site_id) %>%
+               pull(site_id)),
+  
+  ###### Write NLDAS GLM output to netCDF - one per state ######
   # Group output feather tibble by state
   tar_target(
     p3_nldas_glm_uncalibrated_output_feather_groups,
@@ -246,7 +259,7 @@ p3 <- list(
   ),
   
   # Get vector of site_ids for which we have NLDAS output for each state
-  tar_target(p3_nldas_export_site_ids,
+  tar_target(p3_nldas_export_site_ids_states,
              p3_nldas_glm_uncalibrated_output_feather_groups %>%
                arrange(site_id) %>%
                pull(site_id),
@@ -255,14 +268,14 @@ p3 <- list(
   # Pull out lake depth for NLDAS export sites within each state
   tar_target(
     p3_nldas_depths,
-    purrr::map_df(p3_nldas_export_site_ids, function(site_id) {
+    purrr::map_df(p3_nldas_export_site_ids_states, function(site_id) {
       site_nml <- p1_nldas_nml_list_subset[[site_id]]
       tibble(
         site_id = site_id,
         lake_depth = site_nml$lake_depth
       )
     }),
-    pattern = map(p3_nldas_export_site_ids)
+    pattern = map(p3_nldas_export_site_ids_states)
   ),
   
   # Set vector of depths for which to keep temp preds, based on max depth of export lakes in each state
@@ -289,8 +302,8 @@ p3 <- list(
   
   # Pull latitude and longitude coordinates for exported site_ids in each state
   tar_target(p3_nldas_site_coords,
-             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids),
-             pattern = map(p3_nldas_export_site_ids)), 
+             pull_site_coords(p1_lake_centroids_sf_rds, p3_nldas_export_site_ids_states),
+             pattern = map(p3_nldas_export_site_ids_states)), 
 
   # Write NLDAS GLM output for each state to a netCDF file
   tar_target(
