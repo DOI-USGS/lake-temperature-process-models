@@ -72,33 +72,16 @@ p3 <- list(
       tar_group(),
     iteration = "group"
   ),
-  
-  # Get vector of unique states for which we have GCM output
-  tar_target(
-    p3_gcm_glm_uncalibrated_output_states,
-    p3_gcm_glm_uncalibrated_output_feather_groups %>%
-      arrange(state) %>%
-      pull(state) %>%
-      unique()),
-  
-  # Get vector of unique GCM drivers for which we have output
-  tar_target(
-    p3_gcm_glm_uncalibrated_output_drivers,
-    p3_gcm_glm_uncalibrated_output_feather_groups %>%
-      arrange(driver) %>%
-      pull(driver) %>%
-      unique()),
-  
-  # Get vector of site_ids for which we have GCM output in each state - STATE SPECIFIC
+
+  # Get vector of site_ids for which we have GCM output in each state - GCM-SPECIFIC *AND* STATE-SPECIFIC
   tar_target(p3_gcm_export_site_ids_states,
              p3_gcm_glm_uncalibrated_output_feather_groups %>%
-               filter(state == p3_gcm_glm_uncalibrated_output_states) %>%
                arrange(site_id) %>%
                pull(site_id) %>%
                unique(),
-             pattern = map(p3_gcm_glm_uncalibrated_output_states)),
+             pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups)),
   
-  # Pull out lake depth for GCM export sites in each state - STATE SPECIFIC
+  # Pull out lake depth for GCM export sites in each state - GCM-SPECIFIC *AND* STATE-SPECIFIC
   tar_target(
     p3_gcm_depths,
     purrr::map_df(p3_gcm_export_site_ids_states, function(site_id) {
@@ -111,7 +94,7 @@ p3 <- list(
     pattern = map(p3_gcm_export_site_ids_states)
   ),
   
-  # Set vector of depths for which to keep temp preds, based on max depth of export lakes in each state - STATE SPECIFIC
+  # Set vector of depths for which to keep temp preds, based on max depth of export lakes in each state - GCM-SPECIFIC *AND* STATE-SPECIFIC
   # currently matching Andy's approach here: https://github.com/USGS-R/lake-temperature-lstm-static/blob/main/2_process/process_config.yaml#L8-L13
   tar_target(
     p3_gcm_depths_export,
@@ -133,7 +116,7 @@ p3 <- list(
     pattern = map(p3_gcm_depths)
   ),
   
-  # Pull latitude and longitude coordinates for exported site_ids in each state - STATE SPECIFIC
+  # Pull latitude and longitude coordinates for exported site_ids in each state - GCM-SPECIFIC *AND* STATE-SPECIFIC
   tar_target(p3_gcm_site_coords,
              pull_site_coords(p1_lake_centroids_sf_rds, p3_gcm_export_site_ids_states),
              pattern = map(p3_gcm_export_site_ids_states)),
@@ -142,9 +125,6 @@ p3 <- list(
   tar_target(
     p3_gcm_glm_uncalibrated_nc,
     {
-      # check mapping to ensure is correct
-      tar_assert_identical(p3_gcm_glm_uncalibrated_output_feather_groups$site_id, p3_gcm_site_coords$site_id, "p3_gcm_site_coords site ids don't match p3_gcm_glm_uncalibrated_output_feather_groups site ids")
-      
       gcm_nc_dir <-'3_extract/out/lake_temp_preds_glm_gcm'
       if (!dir.exists(gcm_nc_dir)) dir.create(gcm_nc_dir)
 
@@ -160,8 +140,7 @@ p3 <- list(
         compression = FALSE)
     },
     format = 'file',
-    pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups,
-                  cross(p3_gcm_glm_uncalibrated_output_drivers, map(p3_gcm_depths_export, p3_gcm_site_coords)))
+    pattern = map(p3_gcm_glm_uncalibrated_output_feather_groups, p3_gcm_depths_export, p3_gcm_site_coords)
   ),
   
   ##### Extract NLDAS model output #####
