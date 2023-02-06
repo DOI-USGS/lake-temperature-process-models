@@ -99,7 +99,7 @@ pull_data_for_sites <- function(nc_file, nc_info, var, sites, long_format = FALS
   return(data_subset)
 }
 
-###### Functions needed to run read_timeseries_profile_dsg() ###### 
+###### Utility functions from `ncdfgeom` needed to run read_timeseries_profile_dsg() ###### 
 # https://github.com/USGS-R/ncdfgeom/blob/main/R/read_timeseries_dsg.R#L57-L62
 # NOT MODIFIED
 get_nc_meta <- function(nc) {
@@ -203,6 +203,7 @@ get_dsg_meta <- function(nc, nc_meta = NULL) {
   dsg
 }
 
+# https://github.com/DOI-USGS/ncdfgeom/blob/main/R/read_timeseries_dsg.R#L154-L196
 # MODIFIED to pull in depths and in read data section and read in timeseries ids
 get_nc_list <- function(nc, dsg, nc_meta, read_data) {
   
