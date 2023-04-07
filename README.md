@@ -13,11 +13,10 @@ This repository is for running uncalibrated GLM models of lake temperatures.
 * List of lake-specific attributes for nml modification: `'7_config_merge/out/nml_list.rds'` --> `'1_prep/in/nml_list.rds'`
 * Temperature observations: `'7b_temp_merge/out/merged_temp_data_daily.feather'` --> `'1_prep/in/merged_temp_data_daily.feather'`
 * Lake-to-state crosswalk: `'2_crosswalk_munge/out/lake_to_state_xwalk.rds'` --> `'1_prep/in/lake_to_state_xwalk.rds'`
+* Lake centroids `'2_crosswalk_munge/out/centroid_lakes_sf.rds.ind'` --> `'1_prep/in/centroid_lakes_sf.rds'`
 * Lake - GCM cell tile crosswalk: `'7_drivers_munge/out/lake_cell_tile_xwalk.csv'` --> `'1_prep/in/lake_cell_tile_xwalk.csv'`
   * Created within the [targets sub-pipeline](https://github.com/USGS-R/lake-temperature-model-prep/blob/main/_targets.R), look for the lake_cell_tile_xwalk_df target
 * Munged GCM netCDF files (one per GCM): `'7_drivers_munge/out/GCM_{gcm name}.nc'` --> `'1_prep/in/GCM_{gcm name}.nc'`
-
-
 
 ## Running the pipeline on HPC, in parallel
 

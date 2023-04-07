@@ -7,21 +7,13 @@ p5 <- list(
   
   ###### Prep predictions and observations ######
   
-  # Get vector of site_ids for which we have GCM output
-  # filtering to sites withing CASC states
-  tar_target(p5_gcm_export_site_ids,
-             p3_gcm_glm_uncalibrated_output_feather_tibble %>%
-               arrange(site_id) %>%
-               pull(site_id) %>%
-               unique()),
-  
   # Prep site observations
   # filter obs to sites and dates for which we have GCM output
   # And further filter obs to those for sites w/ >= `min_obs_dates` dates with observations
   tar_target(p5_gcm_obs_for_eval,
              {
                gcm_dates_contemporary <- filter(p1_gcm_dates, time_period=='1981_2000')
-               get_eval_obs(p1_obs_feather, p5_gcm_export_site_ids, gcm_dates_contemporary$driver_start_date, 
+               get_eval_obs(p1_obs_feather, p3_gcm_export_site_ids, gcm_dates_contemporary$driver_start_date, 
                             gcm_dates_contemporary$driver_end_date, min_obs_dates = 10)
              }),
   
@@ -167,18 +159,11 @@ p5 <- list(
   
   ###### Prep predictions and observations ######
   
-  # Get vector of site_ids for which we have NLDAS output
-  # filtering to sites within CASC states
-  tar_target(p5_nldas_export_site_ids,
-             p3_nldas_glm_uncalibrated_output_feather_tibble %>%
-               arrange(site_id) %>%
-               pull(site_id)),
-  
   # Prep site observations
   # filter obs to sites and dates for which we have NLDAS output
   # And further filter obs to those for sites w/ >= `min_obs_dates` dates with observations
   tar_target(p5_nldas_obs_for_eval,
-             get_eval_obs(p1_obs_feather, p5_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
+             get_eval_obs(p1_obs_feather, p3_nldas_export_site_ids, p1_nldas_dates$driver_start_date, 
                           p1_nldas_dates$driver_end_date, min_obs_dates = 10)),
 
   # Group filtered obs by site, set up tar_group()

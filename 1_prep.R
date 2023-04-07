@@ -18,7 +18,12 @@ p1 <- list(
   tar_target(p1_nml_list_rds, '1_prep/in/nml_list.rds', format = 'file'),
   tar_target(p1_nml_site_ids, names(readr::read_rds(p1_nml_list_rds))),
   
-  # Temperature observations `7b_temp_merge/out/merged_temp_data_daily.feather`
+  # lake centroids sf object 
+  # file copied from lake-temperature-model-prep repo '2_crosswalk_munge/out/centroid_lakes_sf.rds'
+  tar_target(p1_lake_centroids_sf_rds, '1_prep/in/centroid_lakes_sf.rds', format='file'),
+  
+  # Temperature observations 
+  # file copied from lake-temperature-model-prep repo `7b_temp_merge/out/merged_temp_data_daily.feather`
   tar_target(p1_obs_feather, '1_prep/in/merged_temp_data_daily.feather', format = 'file'),
   
   # lake-to-state xwalk, filtered to only those lakes that are in nml list (able to be modeled by GLM)
@@ -52,7 +57,7 @@ p1 <- list(
   # Define mapping variables
   tar_target(p1_gcm_names, c('ACCESS', 'GFDL', 'CNRM', 'IPSL', 'MRI', 'MIROC5')),
   tar_target(p1_gcm_time_periods, c('1981_2000', '2040_2059', '2080_2099')),
-  
+
   # NetCDF files with munged GCM driver data (one per GCM)
   # files copied from lake-temperature-model-prep repo
   tar_target(p1_gcm_ncs, 
@@ -134,8 +139,8 @@ p1 <- list(
   
   # Define model start and end dates and note start of
   # burn-in and end of burn-out based on extent of NLDAS data
-  # (using 1/2/1979 - 12/31/1979 for burn-in, and 1/1/2021 - 
-  # 4/11/2021 for burn-out)
+  # (using 1/2/1979 - 12/31/1979 for burn-in, and 1/1/2022 - 
+  # 4/11/2022 for burn-out)
   tar_target(
     p1_nldas_dates,
     munge_nldas_dates(p1_nldas_csvs, p1_nldas_time_period)),
