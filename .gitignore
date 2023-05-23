@@ -67,3 +67,4 @@ vignettes/*.pdf
 
 # Rstudio launch script output directories on tallgrass
 tmp/
+.Rproj.user
